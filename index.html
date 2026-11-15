@@ -29,7 +29,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .app{max-width:560px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:18px}
 h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0;text-wrap:balance}
-h1{font-size:2rem;font-weight:800}
+h1{font-size:clamp(1.45rem,5.5vw,2rem);font-weight:800}
 h2{font-size:1.6rem;font-weight:800}
 h3{font-size:1.15rem;font-weight:600}
 p{margin:0}
@@ -108,303 +108,397 @@ canvas{width:100%;height:220px;display:block;border-radius:14px;background:var(-
 .win .big{font-size:3rem;line-height:1;color:var(--sun)}
 footer{font-size:.85rem;color:var(--muted);text-align:center}
 @media (prefers-reduced-motion: reduce){.ball,.meter i,.progress b{transition:none}}
+/* ---- trail map ---- */
+.statrow{display:flex;gap:10px;flex-wrap:wrap}
+.stat{flex:1 1 0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column}
+.stat b{font-family:var(--display);font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-weight:700;font-size:.8rem}
+.verse{font-style:italic;color:var(--muted);font-size:.95rem;text-align:center}
+.unit{display:flex;flex-direction:column;gap:10px}
+.unit h3{display:flex;align-items:center;gap:8px}
+.unit h3 small{font-family:var(--body);font-size:.8rem;color:var(--muted);font-weight:700}
+.path{display:flex;flex-direction:column;gap:6px;position:relative}
+.node{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:transparent;border:0;padding:6px 4px;border-radius:14px}
+.node:nth-child(4n+2){padding-left:28px}.node:nth-child(4n+3){padding-left:56px}.node:nth-child(4n){padding-left:28px}
+.node .dot{flex:none;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.3rem;background:var(--surface);border:3px solid var(--line);color:var(--muted)}
+.node.open .dot{border-color:var(--accent);color:var(--accent);box-shadow:0 4px 0 var(--band)}
+.node.next .dot{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.node.done .dot{background:var(--sun);border-color:var(--sun);color:#1d2b4f}
+.node.locked{cursor:default}
+.node.locked .dot{opacity:.6}
+.node .txt{min-width:0;display:flex;flex-direction:column}
+.node .txt b{font-family:var(--display);font-size:1.08rem;font-weight:600;line-height:1.2}
+.node .txt small{color:var(--muted)}
+.node.locked .txt{opacity:.6}
+.node:not(.locked):hover .dot{transform:translateY(-1px)}
+.linkbtn{border:0;background:transparent;color:var(--muted);text-decoration:underline;font-size:.85rem;padding:4px}
+/* ---- sequence ---- */
+.seqdots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.seqdots span{min-width:38px;padding:4px 8px;border-radius:10px;border:2px solid var(--line);text-align:center;font-weight:800;font-size:.9rem}
+.seqdots span.cur{border-color:var(--accent);color:var(--accent);background:var(--band)}
+.seqdots span.ok{border-color:var(--ok);background:var(--ok);color:#fff}
+.credit{font-size:.82rem;color:var(--muted);text-align:center}
+.bigtime{font-family:var(--display);font-size:3rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
+.vol{height:14px;border-radius:999px;background:var(--line);overflow:hidden}
+.vol b{display:block;height:100%;width:0;background:var(--accent);transition:width .08s}
 </style>
 
 <div class="app" id="app"></div>
 
 <script>
 (function(){
-const $ = (s,el=document)=>el.querySelector(s);
-const store = {
+const $=(s,el=document)=>el.querySelector(s);
+const store={
   get(k,d){try{const v=localStorage.getItem('vozlivre.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
   set(k,v){try{localStorage.setItem('vozlivre.'+k,JSON.stringify(v))}catch(e){}}
 };
-const state = {
-  mode: store.get('mode','kid'),        // kid | adult
-  voice: store.get('voice','high'),     // high | low (adult only)
-  done: store.get('done',{}),           // lessonId -> true
-  view: 'home'
+const state={
+  mode:store.get('mode','kid'), voice:store.get('voice','high'),
+  done:store.get('done',{}), unlockAll:store.get('unlockAll',false),
+  streak:store.get('streak',{n:0,last:null}), view:'home'
 };
+const K=()=>state.mode==='kid';
+const M=(o)=>typeof o==='string'?o:o[state.mode];
 
-/* ---------- copy for both modes ---------- */
-const T = {
-  kid:{
-    hello:'Oi, cantor! Vamos brincar com a voz?',
-    sub:'Cada lição ganha uma estrela. Você consegue!',
-    lessons:[
-      ['breath','Respiração do balão','Encha a barriga como um balão'],
-      ['warm','Aquecimento divertido','Moto, abelhinha e sirene'],
-      ['pitch','Acerte a nota','Faça o balão voar até a estrela']
-    ],
-    breathTip:'Coloque a mão na barriga. Quando o ar entra, a barriga cresce igual a um balão. Os ombros ficam quietinhos!',
-    breathSay:['Cheira a flor','Segura...','Sssss, esvazia o balão'],
-    warm:[
-      ['Espreguiçar','Estique os braços, boceje bem grande e solte os ombros.'],
-      ['Motinha','Feche os lábios soltinhos e faça "brrrrr" como uma moto.'],
-      ['Abelhinha','Boca fechada, faça "mmmmm". Sente a cosquinha no nariz?'],
-      ['Sirene','Faça "uuuuu" começando grossinho e subindo bem fininho, depois desça.']
-    ],
-    warmTip:'Aquecer a voz é como alongar antes de correr. Nunca force: se doer ou coçar, pare e beba água.',
-    pitchTip:'Primeiro escute a nota. Depois cante "uuu" ou "lá" bem tranquilo. Se o balão está embaixo da estrela, suba a voz. Se está em cima, desça.',
-    hintUp:'Sobe um pouquinho! ⬆',hintDown:'Desce um pouquinho! ⬇',hintOk:'Isso! Segura assim!',hintSilent:'Cante "uuu" quando quiser',
-    win:'Você acertou a nota! Ganhou uma estrela!'
-  },
-  adult:{
-    hello:'Bem-vindo à sua aula de canto',
-    sub:'Três exercícios curtos por dia já fazem diferença. Comece pela respiração.',
-    lessons:[
-      ['breath','Respiração diafragmática','Controle do ar: a base de tudo'],
-      ['warm','Aquecimento vocal','Vibração de lábios, humming e sirene'],
-      ['pitch','Afinação: sustentar a nota','Feedback em tempo real da sua voz']
-    ],
-    breathTip:'Inspire pelo nariz expandindo abdômen e costelas, sem subir os ombros. Na expiração, solte o ar em "sss" de forma constante: é esse controle que sustenta as notas longas.',
-    breathSay:['Inspire pelo nariz','Suspenda o ar','Solte em "sss" contínuo'],
-    warm:[
-      ['Relaxamento','Gire os ombros, alongue o pescoço e boceje para abrir a garganta.'],
-      ['Vibração de lábios','Lábios soltos, faça "brrr" sustentado. Reduz tensão e equilibra o ar.'],
-      ['Humming','Boca fechada, "mmm" em uma nota confortável. Sinta vibrar na face (ressonância).'],
-      ['Sirene','Em "uuu", deslize do grave ao agudo e volte, sem quebras e sem forçar.']
-    ],
-    warmTip:'Faça tudo em volume confortável. Aquecimento não é treino de força: o objetivo é preparar a musculatura sem cansar.',
-    pitchTip:'Escute a referência, imagine a nota por um segundo e cante em "lá" ou "uuu". Afinação é ouvido + ajuste: use a linha do gráfico para perceber se você está acima ou abaixo.',
-    hintUp:'Um pouco abaixo: suba ⬆',hintDown:'Um pouco acima: desça ⬇',hintOk:'Afinado. Sustente!',hintSilent:'Cante quando estiver pronto',
-    win:'Nota sustentada com afinação. Excelente!'
-  }
-};
-
-/* ---------- notes ---------- */
+/* ---------- music helpers ---------- */
 const NAMES=['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
+const nm=m=>NAMES[((m%12)+12)%12];
 const midiToHz=m=>440*Math.pow(2,(m-69)/12);
 const hzToMidi=f=>69+12*Math.log2(f/440);
-function noteSet(){
-  if(state.mode==='kid') return [60,62,64,65,67];          // Dó4..Sol4
-  return state.voice==='low' ? [48,50,52,53,55] : [57,59,60,62,64]; // Dó3..Sol3 | Lá3..Mi4
+function baseNote(lesson){
+  if(K()) return lesson&&lesson.kidBase!=null?lesson.kidBase:60;
+  return state.voice==='low'?48:57;
 }
+
+/* ---------- lessons (the trail) ---------- */
+const UNITS=[
+  {id:'u1',title:{kid:'Conhecendo a voz',adult:'Fundamentos'}},
+  {id:'u2',title:{kid:'Afinando a voz',adult:'Afinação'}},
+  {id:'u3',title:{kid:'Cantando louvores',adult:'Cantando louvores'}}
+];
+const L=[
+ {id:'breath',unit:'u1',type:'breath',
+  title:{kid:'Respiração do balão',adult:'Respiração diafragmática'},
+  sub:{kid:'Encha a barriga como um balão',adult:'Controle do ar: a base de tudo'},
+  tip:{kid:'Coloque a mão na barriga. Quando o ar entra, a barriga cresce igual a um balão. Os ombros ficam quietinhos!',
+       adult:'Inspire pelo nariz expandindo abdômen e costelas, sem subir os ombros. Na expiração, solte o ar em "sss" constante: é esse controle que sustenta as notas longas.'}},
+ {id:'warm',unit:'u1',type:'warm',
+  title:{kid:'Aquecimento divertido',adult:'Aquecimento vocal'},
+  sub:{kid:'Moto, abelhinha e sirene',adult:'Vibração de lábios, humming e sirene'},
+  tip:{kid:'Aquecer a voz é como alongar antes de correr. Nunca force: se doer ou coçar, pare e beba água.',
+       adult:'Faça tudo em volume confortável. O objetivo é preparar a musculatura sem cansar.'}},
+ {id:'first',unit:'u1',type:'seq',steps:[0],hold:{kid:1.5,adult:2.5},
+  title:{kid:'Minha primeira nota',adult:'Primeira nota afinada'},
+  sub:{kid:'Faça o balão chegar na estrela',adult:'Escute, imite e sustente'},
+  tip:{kid:'Primeiro escute a nota. Depois cante "uuu" bem tranquilo. Se o balão está embaixo da estrela, suba a voz. Se está em cima, desça.',
+       adult:'Escute a referência, imagine a nota por um segundo e cante em "uuu" ou "lá". Use a linha do gráfico para perceber se está acima ou abaixo.'}},
+ {id:'sustain',unit:'u1',type:'sustain',goal:{kid:6,adult:10},
+  title:{kid:'Fôlego de campeão',adult:'Sustentação do ar'},
+  sub:{kid:'Segure o "uuu" o máximo que puder',adult:'Uma nota longa e constante'},
+  tip:{kid:'Encha o balão da barriga e solte o "uuu" devagarinho, sem gastar todo o ar de uma vez.',
+       adult:'Respire fundo, sem subir os ombros, e sustente um "uuu" confortável com volume constante. O que conta é a regularidade, não a força.'}},
+ {id:'vowels',unit:'u2',type:'seq',steps:[0,0,0,0,0],labels:['A','É','I','Ó','U'],gap:true,
+  title:{kid:'As cinco vogais',adult:'Vogais na mesma nota'},
+  sub:{kid:'A, É, I, Ó, U cantando',adult:'Articulação sem perder a afinação'},
+  tip:{kid:'Cante cada vogal na mesma nota. Abra bem a boca no A e faça biquinho no U. Respire entre uma e outra.',
+       adult:'Mantenha a mesma nota trocando apenas a forma da boca. Faça uma pausa curta entre as vogais. Mudar a vogal não deve mudar a afinação.'}},
+ {id:'scale3',unit:'u2',type:'seq',steps:[0,2,4],
+  title:{kid:'Escadinha de 3 degraus',adult:'Escala de 3 notas'},
+  sub:{kid:'Dó, Ré, Mi',adult:'Graus 1, 2 e 3'},
+  tip:{kid:'Imagine que a voz sobe uma escada, um degrau de cada vez. Ouça antes e depois cante junto.',
+       adult:'Ouça a sequência inteira antes. Cada nota é um pequeno passo para cima: cuidado para não subir demais.'}},
+ {id:'scale5',unit:'u2',type:'seq',steps:[0,2,4,5,7],
+  title:{kid:'Escada de 5 degraus',adult:'Escala de 5 notas'},
+  sub:{kid:'Dó, Ré, Mi, Fá, Sol',adult:'Graus 1 ao 5'},
+  tip:{kid:'Agora a escada é maior! Do Mi para o Fá o degrau é bem baixinho, preste atenção.',
+       adult:'Entre o 3º e o 4º grau há um semitom, o menor passo da escala. É onde a maioria desafina: ouça com atenção.'}},
+ {id:'updown',unit:'u2',type:'seq',steps:[0,2,4,5,7,5,4,2,0],
+  title:{kid:'Sobe e desce',adult:'Escala ascendente e descendente'},
+  sub:{kid:'Subir a escada e voltar',adult:'1-2-3-4-5-4-3-2-1'},
+  tip:{kid:'Descer também é difícil! Na volta, a voz costuma cair rápido demais. Desça devagar.',
+       adult:'Na descida a tendência é baixar a afinação. Mantenha o apoio do ar até a última nota.'}},
+ {id:'leaps',unit:'u2',type:'seq',steps:[0,4,7,4,0],
+  title:{kid:'Pulinhos de nota',adult:'Intervalos: o acorde'},
+  sub:{kid:'Pular de uma nota para outra',adult:'1-3-5-3-1'},
+  tip:{kid:'Agora a voz pula degraus, como um sapinho. Ouça bem antes de pular.',
+       adult:'Saltos exigem ouvir a nota antes de cantar. Imagine o som e só então emita. Esse é o arpejo do acorde maior.'}},
+ {id:'long',unit:'u2',type:'seq',steps:[4],hold:{kid:3,adult:5},
+  title:{kid:'Nota comprida',adult:'Nota longa afinada'},
+  sub:{kid:'Segure a nota bem firme',adult:'Afinação + controle do ar'},
+  tip:{kid:'Use o fôlego de campeão! Segure a nota sem deixar o balão balançar.',
+       adult:'Junte o que aprendeu: respiração, apoio e ouvido. A linha do gráfico deve ficar reta dentro da faixa.'}},
+ {id:'song1',unit:'u3',type:'seq',steps:[7,4,4,2,4,7,7, 9,9,12,9,9,7,7],gapRepeats:true,
+  credit:'Melodia de "Jesus Loves Me", William Bradbury, 1862 (domínio público).',
+  title:{kid:'Louvor: Cristo me ama',adult:'Louvor: Cristo me ama'},
+  sub:{kid:'Primeira frase do hino',adult:'Frase inicial, nota por nota'},
+  tip:{kid:'Cante cada nota em "lá". Quando a nota se repete, dê uma paradinha rápida entre elas.',
+       adult:'Cante em "lá", nota por nota. Nas notas repetidas, articule uma pausa curta. Depois tente a frase inteira ouvindo a melodia.'}},
+ {id:'song2',unit:'u3',type:'seq',kidBase:65,steps:[-5,0,4,0,4,2,0,-3,-5, -5,0,4,0,4,2,7],gapRepeats:true,
+  credit:'Melodia "New Britain" (Amazing Grace), 1829 (domínio público).',
+  title:{kid:'Louvor: Preciosa Graça',adult:'Louvor: Preciosa Graça'},
+  sub:{kid:'Um hino muito amado',adult:'Duas frases do hino'},
+  tip:{kid:'Essa melodia sobe e desce bastante. Ouça a frase toda antes de começar.',
+       adult:'Melodia com saltos e notas de passagem. Ouça a frase inteira, cante em "lá" e respire entre as duas frases.'}}
+];
+const idx=id=>L.findIndex(l=>l.id===id);
+const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id];
+
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function markDone(id){
+  state.done[id]=true; store.set('done',state.done);
+  const t=today(),s=state.streak;
+  if(s.last!==t){const y=new Date();y.setDate(y.getDate()-1);
+    const ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+    s.n=(s.last===ys)?s.n+1:1; s.last=t; store.set('streak',s);}
+}
+function streakNow(){const s=state.streak;if(!s.last)return 0;const y=new Date();y.setDate(y.getDate()-1);
+  const ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+  return (s.last===today()||s.last===ys)?s.n:0;}
 
 /* ---------- audio ---------- */
 let actx=null;
-function ctx(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume(); return actx; }
-function playTone(hz,dur=1.4,glideTo=null){
-  const c=ctx(),o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
-  o.type='triangle'; o.frequency.setValueAtTime(hz,t);
+function ctx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();return actx;}
+function playTone(hz,dur=1.4,glideTo=null,when=0){
+  const c=ctx(),o=c.createOscillator(),g=c.createGain(),t=c.currentTime+when;
+  o.type='triangle';o.frequency.setValueAtTime(hz,t);
   if(glideTo){o.frequency.exponentialRampToValueAtTime(glideTo,t+dur/2);o.frequency.exponentialRampToValueAtTime(hz,t+dur);}
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.05);g.gain.setValueAtTime(.25,t+dur-.2);g.gain.linearRampToValueAtTime(0,t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.04);g.gain.setValueAtTime(.25,t+Math.max(.05,dur-.12));g.gain.linearRampToValueAtTime(0,t+dur);
   o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.05);
 }
-
-let mic=null; // {analyser, buf, stream}
+let mic=null;
 async function startMic(){
-  if(mic) return true;
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    const c=ctx(),src=c.createMediaStreamSource(stream),an=c.createAnalyser();
-    an.fftSize=2048; src.connect(an);
-    mic={analyser:an,buf:new Float32Array(an.fftSize),stream};
-    return true;
-  }catch(e){ return false; }
+  if(mic)return true;
+  try{const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    const c=ctx(),src=c.createMediaStreamSource(stream),an=c.createAnalyser();an.fftSize=2048;src.connect(an);
+    mic={analyser:an,buf:new Float32Array(an.fftSize),stream};return true;}catch(e){return false;}
 }
-function stopMic(){ if(mic){mic.stream.getTracks().forEach(t=>t.stop());mic=null;} }
-
-// Autocorrelation pitch detector (good for a single sung voice)
+function stopMic(){if(mic){mic.stream.getTracks().forEach(t=>t.stop());mic=null;}}
+function rmsOf(buf){let r=0;for(let i=0;i<buf.length;i++)r+=buf[i]*buf[i];return Math.sqrt(r/buf.length);}
 function detectPitch(buf,sr){
-  let rms=0; for(let i=0;i<buf.length;i++) rms+=buf[i]*buf[i];
-  rms=Math.sqrt(rms/buf.length); if(rms<0.012) return null;
+  if(rmsOf(buf)<0.012)return null;
   let r1=0,r2=buf.length-1;const th=0.2;
-  for(let i=0;i<buf.length/2;i++) if(Math.abs(buf[i])<th){r1=i;break;}
-  for(let i=1;i<buf.length/2;i++) if(Math.abs(buf[buf.length-i])<th){r2=buf.length-i;break;}
+  for(let i=0;i<buf.length/2;i++)if(Math.abs(buf[i])<th){r1=i;break;}
+  for(let i=1;i<buf.length/2;i++)if(Math.abs(buf[buf.length-i])<th){r2=buf.length-i;break;}
   const b=buf.slice(r1,r2),n=b.length,c=new Float32Array(n);
-  for(let i=0;i<n;i++){let s=0;for(let j=0;j<n-i;j++) s+=b[j]*b[j+i];c[i]=s;}
-  let d=0; while(d<n-1&&c[d]>c[d+1]) d++;
-  let maxv=-1,maxp=-1; for(let i=d;i<n;i++) if(c[i]>maxv){maxv=c[i];maxp=i;}
-  if(maxp<=0||maxp>=n-1) return null;
-  const x1=c[maxp-1],x2=c[maxp],x3=c[maxp+1],a=(x1+x3-2*x2)/2,bb=(x3-x1)/2;
-  const T0=a?maxp-bb/(2*a):maxp, f=sr/T0;
-  return (f>70&&f<1100)?f:null;
+  for(let i=0;i<n;i++){let s=0;for(let j=0;j<n-i;j++)s+=b[j]*b[j+i];c[i]=s;}
+  let d=0;while(d<n-1&&c[d]>c[d+1])d++;
+  let mv=-1,mp=-1;for(let i=d;i<n;i++)if(c[i]>mv){mv=c[i];mp=i;}
+  if(mp<=0||mp>=n-1)return null;
+  const x1=c[mp-1],x2=c[mp],x3=c[mp+1],a=(x1+x3-2*x2)/2,bb=(x3-x1)/2;
+  const f=sr/(a?mp-bb/(2*a):mp);return(f>70&&f<1100)?f:null;
 }
 
-/* ---------- mascot (simple SVG bird) ---------- */
+/* ---------- shared bits ---------- */
 const mascot=()=>`<svg class="mascot" viewBox="0 0 80 80" aria-hidden="true">
   <circle cx="40" cy="42" r="30" fill="var(--sun)"/><circle cx="31" cy="36" r="4.5" fill="#1d2b4f"/><circle cx="49" cy="36" r="4.5" fill="#1d2b4f"/>
-  <ellipse cx="40" cy="52" rx="8" ry="${state.mode==='kid'?7:5}" fill="var(--coral)"/>
+  <ellipse cx="40" cy="52" rx="8" ry="${K()?7:5}" fill="var(--coral)"/>
   <path d="M60 22 q8 -4 10 -14 M60 22 l4 -8" stroke="var(--accent)" stroke-width="3" fill="none" stroke-linecap="round"/>
   <circle cx="70" cy="9" r="4" fill="var(--accent)"/></svg>`;
+const tipBox=l=>`<div class="tip"><span>💡</span><p><b>Dica do professor:</b> ${M(l.tip)}</p></div>`;
+const demoBox=(extra)=>`<div class="demo" id="demo" hidden><span class="label">Modo demonstração</span>
+  <p class="muted" style="font-size:.9rem">O microfone não está disponível aqui. ${extra} Abra o app no navegador do computador ou do celular para usar sua voz de verdade.</p>
+  <input type="range" id="sim" min="-150" max="150" value="-120" aria-label="Simular altura da voz"></div>`;
+function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim()}
+function nextBtn(i){
+  const n=L[i+1];
+  return n?`<button class="btn" id="nextL">Próxima aula: ${M(n.title)} →</button>`:`<button class="btn" id="nextL">Voltar à trilha</button>`;
+}
+function wireNext(i){const b=$('#nextL');if(b)b.onclick=()=>go(L[i+1]?L[i+1].id:'home');}
 
 /* ---------- render ---------- */
 let cleanup=null;
-function go(view){ if(cleanup){cleanup();cleanup=null;} state.view=view; render(); window.scrollTo(0,0); }
-function starCount(){return Object.keys(state.done).filter(k=>state.done[k]).length}
-function markDone(id){state.done[id]=true;store.set('done',state.done)}
+function go(view){if(cleanup){cleanup();cleanup=null;}state.view=view;render();window.scrollTo(0,0);}
 
 function render(){
-  document.body.classList.toggle('kid',state.mode==='kid');
-  const t=T[state.mode], app=$('#app');
+  document.body.classList.toggle('kid',K());
+  const app=$('#app');
   const head=`<header class="top">
     <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg></div><b>Voz Livre</b></div>
     <div class="seg" role="group" aria-label="Modo">
-      <button id="m-kid" aria-pressed="${state.mode==='kid'}">Criança</button>
-      <button id="m-adult" aria-pressed="${state.mode==='adult'}">Adulto</button>
-    </div></header>`;
+      <button id="m-kid" aria-pressed="${K()}">Criança</button>
+      <button id="m-adult" aria-pressed="${!K()}">Adulto</button></div></header>`;
   if(state.view==='home'){
+    const stars=L.filter(l=>state.done[l.id]).length;
+    const nextI=L.findIndex((l,i)=>!state.done[l.id]&&isUnlocked(i));
     app.innerHTML=head+`
-    <section class="hero">${mascot()}<div><h1>${t.hello}</h1><p class="muted">${t.sub}</p>
-      <p class="stars"><span>★</span> ${starCount()} de 3 estrelas</p></div></section>
-    ${state.mode==='adult'?`<section class="voicepick"><span class="label">Sua voz é mais</span>
+    <section class="hero">${mascot()}<div>
+      <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':'Prepare sua voz para louvar'}</h1>
+      <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
+    <div class="statrow">
+      <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
+      <div class="stat"><b>🔥 ${streakNow()}</b><small>${streakNow()===1?'dia seguido':'dias seguidos'}</small></div>
+      <div class="stat"><b>${Math.round(stars/L.length*100)}%</b><small>da trilha</small></div>
+    </div>
+    ${!K()?`<section class="voicepick"><span class="label">Sua voz é mais</span>
       <div class="seg" role="group" aria-label="Tipo de voz">
         <button id="v-low" aria-pressed="${state.voice==='low'}">Grave (masculina)</button>
         <button id="v-high" aria-pressed="${state.voice==='high'}">Aguda (feminina)</button></div></section>`:''}
-    <section class="lessons">${t.lessons.map((l,i)=>`
-      <button class="lesson" data-go="${l[0]}"><span class="num">${i+1}</span>
-      <span class="txt"><h3>${l[1]}</h3><small>${l[2]}</small></span>
-      <span class="done" aria-label="${state.done[l[0]]?'concluída':''}">${state.done[l[0]]?'★':''}</span></button>`).join('')}
-    </section>
-    <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão</footer>`;
-    app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+    ${UNITS.map((u,ui)=>{const ls=L.map((l,i)=>[l,i]).filter(([l])=>l.unit===u.id);
+      const dn=ls.filter(([l])=>state.done[l.id]).length;
+      return `<section class="unit"><h3>Unidade ${ui+1} · ${M(u.title)} <small>${dn}/${ls.length}</small></h3><div class="path">
+      ${ls.map(([l,i])=>{const done=state.done[l.id],open=isUnlocked(i),cls=done?'done':(i===nextI?'next open':(open?'open':'locked'));
+        return `<button class="node ${cls}" data-go="${l.id}" ${open?'':'aria-disabled="true"'}>
+          <span class="dot">${done?'★':(open?i+1:'🔒')}</span>
+          <span class="txt"><b>${M(l.title)}</b><small>${open?M(l.sub):'Complete a aula anterior para liberar'}</small></span></button>`}).join('')}
+      </div></section>`}).join('')}
+    <p class="verse">"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras." Salmo 96:1</p>
+    <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão<br>
+      <button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button></footer>`;
+    app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);});
+    $('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
   } else {
-    const l=t.lessons.find(x=>x[0]===state.view);
-    app.innerHTML=head+`<button class="back" id="back">← Voltar às lições</button><h2>${l[1]}</h2><div id="body"></div>`;
+    const i=idx(state.view),l=L[i];
+    app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
+      <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
-    ({breath:viewBreath,warm:viewWarm,pitch:viewPitch})[state.view]($('#body'),t);
+    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain})[l.type]($('#body'),l,i);
   }
   $('#m-kid').onclick=()=>{state.mode='kid';store.set('mode','kid');go(state.view)};
   $('#m-adult').onclick=()=>{state.mode='adult';store.set('mode','adult');go(state.view)};
 }
 
-/* ---------- lesson 1: breathing ---------- */
-function viewBreath(el,t){
-  el.innerHTML=`<div class="panel">
-    <div class="tip"><span>💡</span><p><b>Dica do professor:</b> ${t.breathTip}</p></div>
+/* ---------- breathing ---------- */
+function viewBreath(el,l,i){
+  const say=K()?['Cheira a flor','Segura...','Sssss, esvazia o balão']:['Inspire pelo nariz','Suspenda o ar','Solte em "sss" contínuo'];
+  el.innerHTML=`<div class="panel">${tipBox(l)}
     <div class="breath"><div class="ball" id="ball"></div><div class="count" id="cnt"></div><div class="say" id="say">Pronto?</div></div>
     <p class="muted" style="text-align:center" id="cycle">4 ciclos · inspira 4s · segura 2s · solta 6s</p>
-    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button></div></div>`;
-  const ball=$('#ball'),say=$('#say'),cnt=$('#cnt'),cyc=$('#cycle'),btn=$('#go');
-  let timers=[],tick=null;
-  const phases=[[4,1.35,0],[2,1.35,1],[6,.7,2]];
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button></div><div class="row" style="justify-content:center" id="after"></div></div>`;
+  const ball=$('#ball'),sy=$('#say'),cnt=$('#cnt'),cyc=$('#cycle'),btn=$('#go');
+  let timers=[],tick=null;const ph=[[4,1.35,0],[2,1.35,1],[6,.7,2]];
   function clear(){timers.forEach(clearTimeout);timers=[];clearInterval(tick);}
-  function run(){
-    clear(); btn.disabled=true; let at=0;
-    for(let c=0;c<4;c++) phases.forEach(([s,scale,si])=>{
-      timers.push(setTimeout(()=>{
-        cyc.textContent=`Ciclo ${c+1} de 4`;
-        ball.style.transitionDuration=s+'s'; ball.style.transform=`scale(${scale})`;
-        say.textContent=t.breathSay[si]; let left=s; cnt.textContent=left;
-        clearInterval(tick); tick=setInterval(()=>{left--;cnt.textContent=left>0?left:''},1000);
-      },at*1000)); at+=s;
-    });
-    timers.push(setTimeout(()=>{clear();cnt.textContent='';say.textContent=state.mode==='kid'?'Muito bem! ★':'Concluído ★';
-      ball.style.transform='scale(.7)';markDone('breath');btn.disabled=false;btn.textContent='Repetir';},at*1000));
-  }
-  btn.onclick=run; cleanup=clear;
+  btn.onclick=()=>{clear();btn.disabled=true;let at=0;
+    for(let c=0;c<4;c++)ph.forEach(([s,sc,si])=>{timers.push(setTimeout(()=>{cyc.textContent=`Ciclo ${c+1} de 4`;
+      ball.style.transitionDuration=s+'s';ball.style.transform=`scale(${sc})`;sy.textContent=say[si];let left=s;cnt.textContent=left;
+      clearInterval(tick);tick=setInterval(()=>{left--;cnt.textContent=left>0?left:''},1000);},at*1000));at+=s;});
+    timers.push(setTimeout(()=>{clear();cnt.textContent='';sy.textContent=K()?'Muito bem! ★':'Concluído ★';ball.style.transform='scale(.7)';
+      markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);},at*1000));};
+  cleanup=clear;
 }
 
-/* ---------- lesson 2: warm-up ---------- */
-function viewWarm(el,t){
+/* ---------- warm-up ---------- */
+function viewWarm(el,l,i){
   const SEC=20;
-  el.innerHTML=`<div class="panel">
-    <div class="tip"><span>💡</span><p><b>Dica do professor:</b> ${t.warmTip}</p></div>
-    <ol class="steps">${t.warm.map((w,i)=>`<li data-i="${i}"><span class="n">${i+1}</span><span class="t"><h3>${w[0]}</h3><span class="muted">${w[1]}</span></span></li>`).join('')}</ol>
+  const steps=K()?[['Espreguiçar','Estique os braços, boceje bem grande e solte os ombros.'],['Motinha','Lábios soltinhos, faça "brrrrr" como uma moto.'],['Abelhinha','Boca fechada, faça "mmmmm". Sente a cosquinha no nariz?'],['Sirene','Faça "uuuuu" começando grossinho, subindo bem fininho e descendo.']]
+    :[['Relaxamento','Gire os ombros, alongue o pescoço e boceje para abrir a garganta.'],['Vibração de lábios','Lábios soltos, "brrr" sustentado. Reduz tensão e equilibra o ar.'],['Humming','Boca fechada, "mmm" em nota confortável. Sinta vibrar na face.'],['Sirene','Em "uuu", deslize do grave ao agudo e volte, sem quebras e sem forçar.']];
+  el.innerHTML=`<div class="panel">${tipBox(l)}
+    <ol class="steps">${steps.map((w,k)=>`<li><span class="n">${k+1}</span><span class="t"><h3>${w[0]}</h3><span class="muted">${w[1]}</span></span></li>`).join('')}</ol>
     <div class="timer" id="tm">${SEC}s</div>
-    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="ex">Ouvir a sirene</button></div></div>`;
-  const items=[...el.querySelectorAll('.steps li')],tm=$('#tm'),btn=$('#go');
-  let i=-1,left=0,iv=null;
-  function next(){
-    if(i>=0) items[i].classList.replace('on','ok');
-    i++; if(i>=items.length){clearInterval(iv);tm.textContent=state.mode==='kid'?'Voz quentinha! ★':'Voz aquecida ★';markDone('warm');btn.disabled=false;btn.textContent='Repetir';return;}
-    items[i].classList.add('on'); left=SEC; tm.textContent=left+'s';
-  }
-  btn.onclick=()=>{items.forEach(x=>x.className='');i=-1;btn.disabled=true;next();clearInterval(iv);iv=setInterval(()=>{left--;tm.textContent=left+'s';if(left<=0)next();},1000);};
-  $('#ex').onclick=()=>{const lo=state.mode==='kid'?262:(state.voice==='low'?110:196);playTone(lo,3,lo*2.5)};
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="ex">Ouvir a sirene</button></div>
+    <div class="row" style="justify-content:center" id="after"></div></div>`;
+  const items=[...el.querySelectorAll('.steps li')],tm=$('#tm'),btn=$('#go');let k=-1,left=0,iv=null;
+  function next(){if(k>=0)items[k].classList.replace('on','ok');k++;
+    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Voz quentinha! ★':'Voz aquecida ★';markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);return;}
+    items[k].classList.add('on');left=SEC;tm.textContent=left+'s';}
+  btn.onclick=()=>{items.forEach(x=>x.className='');k=-1;btn.disabled=true;next();clearInterval(iv);iv=setInterval(()=>{left--;tm.textContent=left+'s';if(left<=0)next();},1000);};
+  $('#ex').onclick=()=>{const lo=midiToHz(baseNote(l));playTone(lo,3,lo*2.5)};
   cleanup=()=>clearInterval(iv);
 }
 
-/* ---------- lesson 3: pitch match ---------- */
-function viewPitch(el,t){
-  const notes=noteSet(); let target=notes[0];
-  const tol=state.mode==='kid'?45:30, need=state.mode==='kid'?1.5:2.5;
-  el.innerHTML=`<div class="panel">
-    <div class="tip"><span>💡</span><p><b>Dica do professor:</b> ${t.pitchTip}</p></div>
-    <div class="notes" id="notes">${notes.map(m=>`<button data-m="${m}" aria-pressed="${m===target}">${NAMES[m%12]}</button>`).join('')}</div>
+/* ---------- sustain (air) ---------- */
+function viewSustain(el,l,i){
+  const goal=M(l.goal);
+  el.innerHTML=`<div class="panel">${tipBox(l)}
+    <p style="text-align:center" class="muted">Meta: <b>${goal} segundos</b> sem parar</p>
+    <div class="bigtime" id="t">0,0s</div>
+    <div class="vol" aria-label="Volume da sua voz"><b id="vol"></b></div>
+    <div class="progress"><b id="pg"></b></div>
+    <p class="hint" id="hint">Toque em Cantar e sustente um "uuu"</p>
+    <p class="muted" style="text-align:center" id="best">Seu recorde: –</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="mic">🎤 Cantar</button></div>
+    ${demoBox('Segure o botão abaixo para simular a voz.')}
+    <div class="row" style="justify-content:center" id="after"></div></div>`;
+  $('#sim').outerHTML='<button class="btn ghost" id="hold">Segure aqui para simular</button>';
+  let raf=null,listening=false,demo=false,run=0,best=0,quiet=0,won=false,simOn=false,last=performance.now();
+  const hb=$('#hold');['pointerdown','pointerup','pointerleave'].forEach(e=>hb.addEventListener(e,()=>simOn=e==='pointerdown'));
+  $('#mic').onclick=async()=>{ctx();if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';return;}
+    if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
+  function loop(){raf=requestAnimationFrame(loop);const now=performance.now(),dt=(now-last)/1000;last=now;
+    let on=false,v=0;
+    if(listening){if(demo){on=simOn;v=on?.6:0;}else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);const r=rmsOf(mic.buf);v=Math.min(1,r*8);on=r>0.015&&detectPitch(mic.buf,actx.sampleRate)!=null;}}
+    $('#vol').style.width=(v*100)+'%';
+    if(on){run+=dt;quiet=0;}else{quiet+=dt;if(quiet>.35){if(run>best){best=run;$('#best').textContent=`Seu recorde: ${best.toFixed(1).replace('.',',')}s`;}run=0;}}
+    $('#t').textContent=run.toFixed(1).replace('.',',')+'s';$('#pg').style.width=Math.min(100,run/goal*100)+'%';
+    if(!won&&listening)$('#hint').textContent=on?(run>goal*.6?(K()?'Quase lá, segura!':'Mantenha constante!'):(K()?'Isso, devagarinho...':'Bom, ar contínuo...')):(K()?'Respire fundo e solte "uuu"':'Respire e sustente um "uuu"');
+    if(!won&&run>=goal){won=true;markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Fôlego de campeão!':'Meta de sustentação alcançada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);}
+  }
+  cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
+}
+
+/* ---------- note sequence (single notes, scales, songs) ---------- */
+function viewSeq(el,l,i){
+  const base=baseNote(l),notes=l.steps.map(s=>base+s),tol=K()?45:30;
+  const hold=l.hold?M(l.hold):(K()?.6:.8);
+  const single=notes.length===1;
+  el.innerHTML=`<div class="panel">${tipBox(l)}
+    ${single?'':`<div class="seqdots" id="dots">${notes.map((m,k)=>`<span>${l.labels?l.labels[k]:nm(m)}</span>`).join('')}</div>`}
     <div class="target"><span class="note" id="tn"></span><small id="hz"></small></div>
-    <div class="row" style="justify-content:center"><button class="btn ghost" id="play">▶ Ouvir a nota</button><button class="btn" id="mic">🎤 Cantar</button></div>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="play">▶ ${single?'Ouvir a nota':'Ouvir a melodia'}</button><button class="btn" id="mic">🎤 Cantar</button></div>
     <canvas id="cv" aria-label="Gráfico da sua voz em relação à nota alvo"></canvas>
     <div><div class="meter"><i id="needle"></i></div><div class="meterlab"><span>Baixo</span><span>Na nota</span><span>Alto</span></div></div>
-    <p class="hint" id="hint">Escute a nota e toque em Cantar</p>
+    <p class="hint" id="hint">${single?'Escute a nota e toque em Cantar':'Escute a melodia e toque em Cantar'}</p>
     <div class="progress" aria-label="Tempo segurando a nota"><b id="pg"></b></div>
     <p class="muted" style="text-align:center;font-size:.9rem" id="you">Sua voz: –</p>
-    <div class="demo" id="demo" hidden><span class="label">Modo demonstração</span>
-      <p class="muted" style="font-size:.9rem">O microfone não está disponível aqui. Arraste para simular a voz e ver como o app reage. Abra o arquivo no navegador do computador ou celular para usar sua voz de verdade.</p>
-      <input type="range" id="sim" min="-150" max="150" value="-120" aria-label="Simular altura da voz"></div>
-  </div>`;
-  const cv=$('#cv'),g=cv.getContext('2d'),needle=$('#needle'),hint=$('#hint'),pg=$('#pg'),you=$('#you');
-  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null;
-  function setTarget(m){target=m;won=false;held=0;trail=[];
-    $('#tn').textContent=NAMES[m%12]; $('#hz').textContent=Math.round(midiToHz(m))+' Hz';
-    el.querySelectorAll('#notes button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.m===m));}
-  setTarget(target);
-  el.querySelectorAll('#notes button').forEach(b=>b.onclick=()=>{setTarget(+b.dataset.m);playTone(midiToHz(target))});
-  $('#play').onclick=()=>playTone(midiToHz(target));
-  $('#mic').onclick=async()=>{
-    ctx();
-    if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';hint.textContent=t.hintSilent;return;}
-    const ok=await startMic();
-    if(!ok){demo=true;$('#demo').hidden=false;}
-    listening=true;$('#mic').textContent='■ Parar';hint.textContent=t.hintSilent;
-    if(!raf) loop();
-  };
-  function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim()}
+    ${l.credit?`<p class="credit">${l.credit}</p>`:''}
+    ${demoBox('Arraste para simular a voz e ver como o app reage.')}
+    <div class="row" style="justify-content:center" id="after"></div></div>`;
+  const cv=$('#cv'),g=cv.getContext('2d'),needle=$('#needle'),hint=$('#hint'),pg=$('#pg'),you=$('#you'),dots=[...el.querySelectorAll('#dots span')];
+  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0;
+  const H={up:K()?'Sobe um pouquinho! ⬆':'Um pouco abaixo: suba ⬆',down:K()?'Desce um pouquinho! ⬇':'Um pouco acima: desça ⬇',
+    ok:K()?'Isso! Segura assim!':'Afinado. Sustente!',silent:K()?'Cante "lá" quando quiser':'Cante quando estiver pronto',gap:K()?'Respira... e a próxima!':'Pausa curta... próxima nota'};
+  function show(){const m=notes[step];$('#tn').textContent=l.labels?`${l.labels[step]} · ${nm(m)}`:nm(m);$('#hz').textContent=Math.round(midiToHz(m))+' Hz';
+    dots.forEach((d,k)=>d.className=k<step?'ok':(k===step?'cur':''));}
+  show();
+  $('#play').onclick=()=>{const dur=single?1.4:.55;
+    if(single){playTone(midiToHz(notes[0]),dur);muteUntil=performance.now()+dur*1000+150;return;}
+    notes.forEach((m,k)=>playTone(midiToHz(m),dur-.05,null,k*dur));muteUntil=performance.now()+notes.length*dur*1000+150;};
+  $('#mic').onclick=async()=>{ctx();
+    if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';hint.textContent=H.silent;return;}
+    if(!await startMic()){demo=true;$('#demo').hidden=false;}
+    listening=true;$('#mic').textContent='■ Parar';hint.textContent=H.silent;if(!raf)loop();};
   function draw(cents){
     const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
-    if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr;}
-    g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
-    const y=c=>h/2-c/200*(h/2-14);
-    // target band
-    g.fillStyle=css('--band'); g.fillRect(0,y(tol),w,y(-tol)-y(tol));
-    g.strokeStyle=css('--line'); g.lineWidth=1;
-    [-100,100].forEach(c=>{g.beginPath();g.moveTo(0,y(c));g.lineTo(w,y(c));g.stroke();});
-    g.fillStyle=css('--muted'); g.font='12px Nunito,sans-serif';
-    g.fillText('+100 cents',8,y(100)-4); g.fillText('−100',8,y(-100)+14);
-    // goal star at right
-    const sx=w-28, sy=y(0); g.fillStyle=css('--sun'); g.beginPath();
-    for(let k=0;k<10;k++){const r=k%2?6:14,a=-Math.PI/2+k*Math.PI/5;g.lineTo(sx+r*Math.cos(a),sy+r*Math.sin(a));}
-    g.closePath(); g.fill();
-    // trail
-    g.strokeStyle=css('--accent'); g.lineWidth=3; g.lineJoin='round'; g.beginPath(); let pen=false;
-    const step=(w-60)/160;
-    trail.forEach((c,i)=>{if(c==null){pen=false;return;}const X=i*step,Y=y(Math.max(-200,Math.min(200,c)));pen?g.lineTo(X,Y):g.moveTo(X,Y);pen=true;});
-    g.stroke();
-    // current marker: balloon (kid) or dot (adult)
-    if(cents!=null){
-      const X=Math.min(trail.length,160)*step, Y=y(Math.max(-200,Math.min(200,cents)));
+    if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+    g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);const y=c=>h/2-c/200*(h/2-14);
+    g.fillStyle=css('--band');g.fillRect(0,y(tol),w,y(-tol)-y(tol));
+    g.strokeStyle=css('--line');g.lineWidth=1;[-100,100].forEach(c=>{g.beginPath();g.moveTo(0,y(c));g.lineTo(w,y(c));g.stroke();});
+    g.fillStyle=css('--muted');g.font='12px Nunito,sans-serif';g.fillText('+100 cents',8,y(100)-4);g.fillText('−100',8,y(-100)+14);
+    const sx=w-28,sy=y(0);g.fillStyle=css('--sun');g.beginPath();
+    for(let k=0;k<10;k++){const r=k%2?6:14,a=-Math.PI/2+k*Math.PI/5;g.lineTo(sx+r*Math.cos(a),sy+r*Math.sin(a));}g.closePath();g.fill();
+    g.strokeStyle=css('--accent');g.lineWidth=3;g.lineJoin='round';g.beginPath();let pen=false;const st=(w-60)/160;
+    trail.forEach((c,k)=>{if(c==null){pen=false;return;}const X=k*st,Y=y(Math.max(-200,Math.min(200,c)));pen?g.lineTo(X,Y):g.moveTo(X,Y);pen=true;});g.stroke();
+    if(cents!=null){const X=Math.min(trail.length,160)*st,Y=y(Math.max(-200,Math.min(200,cents)));
       g.fillStyle=Math.abs(cents)<=tol?css('--ok'):css('--accent');
-      if(state.mode==='kid'){g.beginPath();g.ellipse(X,Y,13,16,0,0,7);g.fill();g.strokeStyle=css('--muted');g.lineWidth=1.5;g.beginPath();g.moveTo(X,Y+16);g.quadraticCurveTo(X-6,Y+26,X,Y+34);g.stroke();}
-      else{g.beginPath();g.arc(X,Y,7,0,7);g.fill();}
-    }
+      if(K()){g.beginPath();g.ellipse(X,Y,13,16,0,0,7);g.fill();g.strokeStyle=css('--muted');g.lineWidth=1.5;g.beginPath();g.moveTo(X,Y+16);g.quadraticCurveTo(X-6,Y+26,X,Y+34);g.stroke();}
+      else{g.beginPath();g.arc(X,Y,7,0,7);g.fill();}}
   }
   function loop(){
-    raf=requestAnimationFrame(loop);
-    const now=performance.now(),dt=(now-last)/1000; last=now;
-    let f=null;
-    if(listening){
-      if(demo) f=midiToHz(target+(+$('#sim').value)/100);
-      else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf); f=detectPitch(mic.buf,actx.sampleRate);}
+    raf=requestAnimationFrame(loop);const now=performance.now(),dt=(now-last)/1000;last=now;
+    const target=notes[step];let f=null;
+    if(listening&&now>muteUntil){
+      if(demo){f=midiToHz(target+(+$('#sim').value)/100);if(needGap&&gapT<.3){f=null;}}
+      else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);f=detectPitch(mic.buf,actx.sampleRate);}
     }
     let cents=null;
-    if(f){
-      let c=(hzToMidi(f)-target)*100;
-      // beginners often sing the right note in another octave: accept it
-      while(c>600)c-=1200; while(c<-600)c+=1200;
-      smooth=smooth==null?c:smooth*0.7+c*0.3; cents=smooth;
-      const m=Math.round(hzToMidi(f)); you.textContent=`Sua voz: ${NAMES[((m%12)+12)%12]} · ${Math.round(f)} Hz · ${cents>0?'+':''}${Math.round(cents)} cents`;
-    } else { smooth=null; if(listening) you.textContent='Sua voz: –'; }
-    trail.push(cents); if(trail.length>160) trail.shift();
+    if(f){let c=(hzToMidi(f)-target)*100;while(c>600)c-=1200;while(c<-600)c+=1200;
+      smooth=smooth==null?c:smooth*.7+c*.3;cents=smooth;
+      you.textContent=`Sua voz: ${nm(Math.round(hzToMidi(f)))} · ${Math.round(f)} Hz · ${cents>0?'+':''}${Math.round(cents)} cents`;}
+    else{smooth=null;if(listening)you.textContent='Sua voz: –';}
+    trail.push(cents);if(trail.length>160)trail.shift();
     needle.style.left=(cents==null?50:50+Math.max(-100,Math.min(100,cents))/2)+'%';
-    if(!won && listening){
-      if(cents==null){hint.textContent=t.hintSilent;held=Math.max(0,held-dt*.5);}
-      else if(Math.abs(cents)<=tol){hint.textContent=t.hintOk;held+=dt;}
-      else {hint.textContent=cents<0?t.hintUp:t.hintDown;held=Math.max(0,held-dt*.3);}
-      pg.style.width=Math.min(100,held/need*100)+'%';
-      if(held>=need){won=true;markDone('pitch');hint.innerHTML=`<span class="win"><span class="big">★</span>${t.win}</span>`;}
+    if(!won&&listening){
+      if(needGap){if(cents==null){gapT+=dt;if(gapT>=.25)needGap=false;}hint.textContent=H.gap;pg.style.width='0%';draw(cents);return;}
+      if(cents==null){hint.textContent=H.silent;held=Math.max(0,held-dt*.5);}
+      else if(Math.abs(cents)<=tol){hint.textContent=H.ok;held+=dt;}
+      else{hint.textContent=cents<0?H.up:H.down;held=Math.max(0,held-dt*.3);}
+      pg.style.width=Math.min(100,held/hold*100)+'%';
+      if(held>=hold){held=0;step++;
+        if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');markDone(l.id);
+          hint.innerHTML=`<span class="win"><span class="big">★</span>${single?(K()?'Você acertou a nota!':'Nota sustentada com afinação!'):(K()?'Você cantou tudinho!':'Sequência completa e afinada!')}</span>`;
+          $('#after').innerHTML=nextBtn(i);wireNext(i);}
+        else{show();trail=[];if(l.gap||(l.gapRepeats&&notes[step]===notes[step-1])){needGap=true;gapT=0;}}}
     }
     draw(cents);
   }
