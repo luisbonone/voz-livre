@@ -140,6 +140,11 @@ footer{font-size:.85rem;color:var(--muted);text-align:center}
 .credit{font-size:.82rem;color:var(--muted);text-align:center}
 .bigtime{font-family:var(--display);font-size:3rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
 .vol{height:14px;border-radius:999px;background:var(--line);overflow:hidden}
+.score{display:flex;flex-direction:column;align-items:center;gap:2px}
+.score b{font-family:var(--display);font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums}
+.score small{color:var(--muted);font-weight:700}
+.holdinfo{text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+canvas.lane{height:260px}
 .vol b{display:block;height:100%;width:0;background:var(--accent);transition:width .08s}
 /* ---- guide character (kids) ---- */
 .guide{display:flex;gap:12px;align-items:flex-end}
@@ -176,7 +181,7 @@ const store={
 const state={
   mode:store.get('mode','kid'), voice:store.get('voice','high'),
   done:store.get('done',{}), unlockAll:store.get('unlockAll',false),
-  streak:store.get('streak',{n:0,last:null}), view:'home'
+  streak:store.get('streak',{n:0,last:null}), scores:store.get('scores',{}), view:'home'
 };
 const K=()=>state.mode==='kid';
 const M=(o)=>typeof o==='string'?o:o[state.mode];
@@ -244,10 +249,16 @@ const L=[
   tip:{kid:'Agora a voz pula degraus, como um sapinho. Ouça bem antes de pular.',
        adult:'Saltos exigem ouvir a nota antes de cantar. Imagine o som e só então emita. Esse é o arpejo do acorde maior.'}},
  {id:'long',unit:'u2',type:'seq',steps:[4],hold:{kid:3,adult:5},
+  showHold:true,
   title:{kid:'Nota comprida',adult:'Nota longa afinada'},
   sub:{kid:'Segure a nota bem firme',adult:'Afinação + controle do ar'},
   tip:{kid:'Use o fôlego de campeão! Segure a nota sem deixar o balão balançar.',
        adult:'Junte o que aprendeu: respiração, apoio e ouvido. A linha do gráfico deve ficar reta dentro da faixa.'}},
+ {id:'follow1',unit:'u2',type:'follow',steps:[0,2,4,5,7,5,4,2,0],beats:[1,1,1,1,2,1,1,1,2],
+  title:{kid:'Siga a escada',adult:'Siga a melodia: escala'},
+  sub:{kid:'Cante junto com as notas que passam',adult:'Cantar no tempo, sem parar'},
+  tip:{kid:'As notas vão passando como um trenzinho. Quando a nota chegar na linha, cante! Primeiro toque em Ouvir para conhecer.',
+       adult:'Agora o desafio é o tempo: as notas passam pela linha vertical e você canta cada uma na hora certa. Ouça uma vez antes de cantar.'}},
  {id:'song1',unit:'u3',type:'seq',steps:[7,4,4,2,4,7,7, 9,9,12,9,9,7,7],gapRepeats:true,
   credit:'Melodia de "Jesus Loves Me", William Bradbury, 1862 (domínio público).',
   title:{kid:'Louvor: Cristo me ama',adult:'Louvor: Cristo me ama'},
@@ -259,11 +270,20 @@ const L=[
   title:{kid:'Louvor: Preciosa Graça',adult:'Louvor: Preciosa Graça'},
   sub:{kid:'Um hino muito amado',adult:'Duas frases do hino'},
   tip:{kid:'Essa melodia sobe e desce bastante. Ouça a frase toda antes de começar.',
-       adult:'Melodia com saltos e notas de passagem. Ouça a frase inteira, cante em "lá" e respire entre as duas frases.'}}
+       adult:'Melodia com saltos e notas de passagem. Ouça a frase inteira, cante em "lá" e respire entre as duas frases.'}},
+ {id:'follow2',unit:'u3',type:'follow',steps:[7,4,4,2,4,7,7, 9,9,12,9,9,7,7],beats:[1,.5,.5,1,1,1,2, 1,.5,.5,1,1,1,2],
+  credit:'Melodia de "Jesus Loves Me", William Bradbury, 1862 (domínio público).',
+  title:{kid:'Siga o louvor: Cristo me ama',adult:'Siga a melodia: Cristo me ama'},
+  sub:{kid:'Cantar o hino no ritmo',adult:'A frase inteira, no tempo'},
+  tip:{kid:'Agora é cantar o louvor inteirinho no ritmo, sem parar! Ouça primeiro e depois cante junto com as notas.',
+       adult:'Junte afinação e ritmo: cante a frase inteira acompanhando as notas na tela. Sua nota é a porcentagem do tempo em que você esteve afinado.'}}
 ];
 const idx=id=>L.findIndex(l=>l.id===id);
 const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id];
 
+function saveScore(id,v){if(!(state.scores[id]>=v)){state.scores[id]=v;store.set('scores',state.scores);}}
+function scoreLabel(v){return v>=90?'Excelente!':v>=75?'Muito bom!':v>=60?'Bom!':'Continue praticando'}
+function scoreHTML(v,id){const b=state.scores[id];return `<div class="score"><span class="label">Nota de afinação</span><b>${v}<span style="font-size:1.2rem">/100</span></b><small>${scoreLabel(v)}${b!=null&&b>v?` · Seu recorde: ${b}`:''}</small></div>`}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function markDone(id){
   state.done[id]=true; store.set('done',state.done);
@@ -378,9 +398,9 @@ function confetti(){
   document.body.appendChild(c);setTimeout(()=>c.remove(),3200);
 }
 const WIN_KID=['Uhuuu! Você conseguiu! Ganhou uma estrela!','Que lindo! Deus te deu uma voz linda!','Isso aí, campeão! Mais uma estrela!','Glória a Deus! Você mandou muito bem!'];
-function celebrate(i){
+function celebrate(i,sc){
   if(!K())return;confetti();
-  guide(WIN_KID[Math.floor(Math.random()*WIN_KID.length)]+(L[i+1]?' Vamos para a próxima aula?':' Você terminou a trilha toda!'),'cheer','force');
+  guide(WIN_KID[Math.floor(Math.random()*WIN_KID.length)]+(sc!=null?` Sua nota foi ${sc}!`:'')+(L.every(x=>state.done[x.id])?' Você terminou a trilha toda!':(L[i+1]?' Vamos para a próxima aula?':'')),'cheer','force');
 }
 function homeLine(){
   const n=L.filter(l=>state.done[l.id]).length;
@@ -425,7 +445,7 @@ function render(){
       ${ls.map(([l,i])=>{const done=state.done[l.id],open=isUnlocked(i),cls=done?'done':(i===nextI?'next open':(open?'open':'locked'));
         return `<button class="node ${cls}" data-go="${l.id}" ${open?'':'aria-disabled="true"'}>
           <span class="dot">${done?'★':(open?i+1:'🔒')}</span>
-          <span class="txt"><b>${M(l.title)}</b><small>${open?M(l.sub):'Complete a aula anterior para liberar'}</small></span></button>`}).join('')}
+          <span class="txt"><b>${M(l.title)}</b><small>${open?M(l.sub):'Complete a aula anterior para liberar'}${state.scores[l.id]!=null?` · Melhor nota: ${state.scores[l.id]}`:''}</small></span></button>`}).join('')}
       </div></section>`}).join('')}
     <p class="verse">"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras." Salmo 96:1</p>
     <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão<br>
@@ -440,7 +460,7 @@ function render(){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
-    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain})[l.type]($('#body'),l,i);
+    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow})[l.type]($('#body'),l,i);
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   $('#m-kid').onclick=()=>{state.mode='kid';store.set('mode','kid');go(state.view)};
@@ -528,12 +548,17 @@ function viewSeq(el,l,i){
     <div><div class="meter"><i id="needle"></i></div><div class="meterlab"><span>Baixo</span><span>Na nota</span><span>Alto</span></div></div>
     <p class="hint" id="hint">${single?'Escute a nota e toque em Cantar':'Escute a melodia e toque em Cantar'}</p>
     <div class="progress" aria-label="Tempo segurando a nota"><b id="pg"></b></div>
+    ${l.showHold?'<p class="holdinfo" id="holdinfo">Afinado sem parar: 0,0s · Recorde: –</p>':''}
     <p class="muted" style="text-align:center;font-size:.9rem" id="you">Sua voz: –</p>
+    <div id="scorebox"></div>
     ${l.credit?`<p class="credit">${l.credit}</p>`:''}
     ${demoBox('Arraste para simular a voz e ver como o app reage.')}
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   const cv=$('#cv'),g=cv.getContext('2d'),needle=$('#needle'),hint=$('#hint'),pg=$('#pg'),you=$('#you'),dots=[...el.querySelectorAll('#dots span')];
-  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0,stepT=0,moodT=0;
+  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0,stepT=0,moodT=0,voiced=0,inT=0,absSum=0,run=0,outT=0,bestRun=store.get('hold.'+l.id,0);
+  const fmt=x=>x.toFixed(1).replace('.',',');
+  function holdInfo(){const h=$('#holdinfo');if(h)h.textContent=`Afinado sem parar: ${fmt(run)}s · Recorde: ${bestRun?fmt(bestRun)+'s':'–'}`;}
+  holdInfo();
   function react(kind){ if(!K()||won)return; const t=performance.now(); if(t-moodT<900)return; moodT=t;
     if(kind==='ok')guide(step>0&&!single?'Isso! Segura... ':'Isso! Você está na nota, segura!','happy');
     else if(kind==='up')guide('Sobe um pouquinho a voz, mais fininha!','think');
@@ -585,20 +610,99 @@ function viewSeq(el,l,i){
     if(!won&&listening){
       if(needGap){if(cents==null){gapT+=dt;if(gapT>=.25)needGap=false;}hint.textContent=H.gap;pg.style.width='0%';draw(cents);return;}
       stepT+=dt;
+      if(cents!=null){voiced+=dt;absSum+=Math.min(100,Math.abs(cents))*dt;if(Math.abs(cents)<=tol)inT+=dt;}
+      if(cents!=null&&Math.abs(cents)<=tol){run+=dt;outT=0;}else{outT+=dt;if(outT>.25)run=0;}
+      if(run>bestRun){bestRun=run;store.set('hold.'+l.id,bestRun);}
+      holdInfo();
       if(cents==null){hint.textContent=H.silent;held=Math.max(0,held-dt*.5);}
       else if(Math.abs(cents)<=tol){hint.textContent=H.ok;held+=dt;react('ok');}
       else{hint.textContent=cents<0?H.up:H.down;held=Math.max(0,held-dt*.3);react(stepT>9?'help':(cents<0?'up':'down'));}
       pg.style.width=Math.min(100,held/hold*100)+'%';
       if(held>=hold){held=0;step++;
         if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');markDone(l.id);
+          const sc=voiced>0?Math.round(100*(.6*inT/voiced+.4*Math.max(0,1-absSum/voiced/100))):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);saveScore(l.id,sc);
           hint.innerHTML=`<span class="win"><span class="big">★</span>${single?(K()?'Você acertou a nota!':'Nota sustentada com afinação!'):(K()?'Você cantou tudinho!':'Sequência completa e afinada!')}</span>`;
-          $('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);}
+          $('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
         else{show();trail=[];stepT=0;moodT=0;react('next');if(l.gap||(l.gapRepeats&&notes[step]===notes[step-1])){needGap=true;gapT=0;}}}
     }
     draw(cents);
   }
   draw(null);
   cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
+}
+
+/* ---------- follow the melody (in time, with score) ---------- */
+function viewFollow(el,l,i){
+  const base=baseNote(l),beat=K()?.6:.5,tol=K()?50:35,pass=K()?50:60;
+  let t=0;const ev=l.steps.map((s,k)=>{const d=(l.beats?l.beats[k]:1)*beat;const e={m:base+s,t0:t,t1:t+d*.9,hit:0,tot:0};t+=d;return e;});
+  const total=t,ms=ev.map(e=>e.m),minM=Math.min(...ms)-2,maxM=Math.max(...ms)+2;
+  el.innerHTML=`<div class="panel">${tipBox(l)}
+    <canvas class="lane" id="cv" aria-label="Notas da melodia passando e a linha da sua voz"></canvas>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="play">▶ Ouvir</button><button class="btn" id="mic">🎤 Cantar junto</button></div>
+    <p class="hint" id="hint">${K()?'Toque em Ouvir para conhecer a melodia':'Ouça a melodia uma vez e depois cante junto'}</p>
+    <div id="scorebox"></div>
+    <p class="muted" style="text-align:center;font-size:.9rem">Para ganhar a estrela: nota ${pass} ou mais</p>
+    ${l.credit?`<p class="credit">${l.credit}</p>`:''}
+    ${demoBox('Arraste para simular a voz enquanto as notas passam.')}
+    <div class="row" style="justify-content:center" id="after"></div></div>`;
+  const cv=$('#cv'),g=cv.getContext('2d'),hint=$('#hint');
+  let mode='idle',t0=0,raf=null,demo=false,trail=[],smooth=null,timers=[];
+  const now=()=>(performance.now()-t0)/1000;
+  function draw(time,fit){
+    const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+    if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+    g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+    if(fit)time=0;const px=fit?34:w*.25,pps=fit?(w-44)/total:w/4.2,X=tt=>px+(tt-time)*pps,rowH=(h-20)/(maxM-minM),Y=m=>h-10-(m-minM)*rowH;
+    g.font='11px Nunito,sans-serif';
+    for(let m=Math.ceil(minM);m<=maxM;m++){if([1,3,6,8,10].includes(((m%12)+12)%12))continue;
+      g.strokeStyle=css('--line');g.lineWidth=1;g.beginPath();g.moveTo(0,Y(m));g.lineTo(w,Y(m));g.stroke();
+      g.fillStyle=css('--muted');g.fillText(nm(m),4,Y(m)-3);}
+    ev.forEach(e=>{const x0=X(e.t0),x1=X(e.t1);if(x1<0||x0>w)return;
+      const r=e.tot>0?e.hit/e.tot:null;
+      g.fillStyle=r==null?css('--accent'):(r>=.5?css('--ok'):css('--coral'));g.globalAlpha=r==null?.85:1;
+      const hh=Math.max(10,rowH*.8),yy=Y(e.m)-hh/2,rr=hh/2;
+      g.beginPath();g.moveTo(x0+rr,yy);g.lineTo(x1-rr,yy);g.arc(x1-rr,yy+rr,rr,-Math.PI/2,Math.PI/2);g.lineTo(x0+rr,yy+hh);g.arc(x0+rr,yy+rr,rr,Math.PI/2,Math.PI*1.5);g.fill();g.globalAlpha=1;
+      if(x1-x0>26){g.fillStyle=css('--accent-ink');g.font='bold 11px Nunito,sans-serif';g.fillText(nm(e.m),x0+8,yy+hh/2+4);g.font='11px Nunito,sans-serif';}});
+    if(!fit){g.strokeStyle=css('--ink');g.lineWidth=2;g.beginPath();g.moveTo(px,0);g.lineTo(px,h);g.stroke();}
+    g.strokeStyle=css('--sun');g.lineWidth=4;g.lineJoin='round';g.beginPath();let pen=false;
+    trail.forEach(p=>{if(p.m==null){pen=false;return;}const x=X(p.t);if(x<0)return;pen?g.lineTo(x,Y(p.m)):g.moveTo(x,Y(p.m));pen=true;});g.stroke();
+    const lp=trail[trail.length-1];if(lp&&lp.m!=null&&mode==='sing'){g.fillStyle=css('--sun');g.beginPath();g.arc(px,Y(lp.m),7,0,7);g.fill();}
+  }
+  function cur(time){return ev.find(e=>time>=e.t0&&time<=e.t1)||null}
+  function stopAll(){timers.forEach(clearTimeout);timers=[];cancelAnimationFrame(raf);raf=null;}
+  $('#play').onclick=()=>{if(mode==='sing')return;stopAll();ctx();trail=[];ev.forEach(e=>{e.hit=0;e.tot=0});
+    ev.forEach(e=>playTone(midiToHz(e.m),e.t1-e.t0,null,e.t0+.3));t0=performance.now()+300;mode='preview';hint.textContent=K()?'Escute e veja as notas passando...':'Ouça e acompanhe as notas...';
+    const step=()=>{raf=requestAnimationFrame(step);draw(now());if(now()>total+.5){stopAll();mode='idle';hint.textContent=K()?'Agora é sua vez! Toque em Cantar junto':'Agora cante junto';draw(0,true);}};step();};
+  $('#mic').onclick=async()=>{ctx();
+    if(mode==='sing'){finish(true);return;}
+    stopAll();if(!await startMic()){demo=true;$('#demo').hidden=false;}
+    trail=[];ev.forEach(e=>{e.hit=0;e.tot=0});$('#scorebox').innerHTML='';mode='count';$('#mic').textContent='■ Parar';
+    const lead=beat*1.6;[3,2,1].forEach((n,k)=>timers.push(setTimeout(()=>{hint.textContent=n+'...';playTone(n===1?880:660,.08)},k*lead/3*1000)));
+    timers.push(setTimeout(()=>{hint.textContent=K()?'Canta!':'Cante!';},lead*1000));
+    t0=performance.now()+lead*1000;let last=performance.now();
+    const step=()=>{raf=requestAnimationFrame(step);const tn=now(),pn=performance.now(),dt=(pn-last)/1000;last=pn;
+      if(tn<0){draw(tn);return;}mode='sing';
+      const c=cur(tn);let f=null;
+      if(demo){f=c?midiToHz(c.m+(+$('#sim').value)/100):null;}
+      else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);f=detectPitch(mic.buf,actx.sampleRate);}
+      let m=null;
+      if(f){let raw=hzToMidi(f);const ref=c?c.m:(ev.find(e=>e.t0>tn)||ev[ev.length-1]).m;while(raw-ref>6)raw-=12;while(raw-ref<-6)raw+=12;smooth=smooth==null?raw:smooth*.6+raw*.4;m=smooth;}else smooth=null;
+      trail.push({t:tn,m});if(trail.length>600)trail.shift();
+      if(c&&tn>c.t0+.12){c.tot+=dt;if(m!=null&&Math.abs(m-c.m)*100<=tol)c.hit+=dt;}
+      if(K()&&c&&tn>c.t0+.2){const ok=m!=null&&Math.abs(m-c.m)*100<=tol;hint.textContent=m==null?'Canta junto!':(ok?'Isso!':(m<c.m?'Sobe! ⬆':'Desce! ⬇'));}
+      draw(tn);if(tn>total+.4)finish(false);};
+    step();};
+  function finish(stopped){
+    stopAll();stopMic();$('#mic').textContent='🎤 Cantar junto';mode='done';draw(0,true);
+    const tot=ev.reduce((a,e)=>a+e.tot,0),hit=ev.reduce((a,e)=>a+e.hit,0);
+    if(stopped&&tot<total*.5){hint.textContent=K()?'Parou! Quando quiser, tente de novo.':'Interrompido. Tente de novo quando quiser.';mode='idle';return;}
+    const sc=tot>0?Math.round(100*hit/tot):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);saveScore(l.id,sc);
+    if(sc>=pass){markDone(l.id);hint.innerHTML=`<span class="win"><span class="big">★</span>${K()?'Você cantou no ritmo!':'Melodia completa no tempo!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
+    else{hint.textContent=K()?'Quase! Ouça de novo e tente mais uma vez.':'Ainda não. Ouça de novo as notas vermelhas e repita.';
+      if(K())guide(`Sua nota foi ${sc}. Quase lá! As notas vermelhas são as que escaparam. Vamos tentar de novo?`,'idle','force');}
+  }
+  draw(0,true);
+  cleanup=()=>{stopAll();stopMic();};
 }
 
 render();
