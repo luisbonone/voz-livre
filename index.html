@@ -141,9 +141,30 @@ footer{font-size:.85rem;color:var(--muted);text-align:center}
 .bigtime{font-family:var(--display);font-size:3rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
 .vol{height:14px;border-radius:999px;background:var(--line);overflow:hidden}
 .vol b{display:block;height:100%;width:0;background:var(--accent);transition:width .08s}
+/* ---- guide character (kids) ---- */
+.guide{display:flex;gap:12px;align-items:flex-end}
+.guide .davi{flex:none;width:84px;height:84px;animation:bob 2.4s ease-in-out infinite}
+.bubble{position:relative;flex:1;min-width:0;background:var(--surface);border:2px solid var(--accent);border-radius:18px 18px 18px 6px;padding:12px 14px;font-weight:700;font-size:1rem}
+.bubble small{display:block;font-family:var(--display);color:var(--accent);font-size:.9rem;line-height:1.1;margin-bottom:2px}
+.bubble .spk{position:absolute;top:6px;right:8px;border:0;background:transparent;font-size:1rem;padding:2px}
+.bubble p{padding-right:22px}
+.davi .eye{animation:blink 4s infinite;transform-origin:center;transform-box:fill-box}
+.davi.talk .beak-low{animation:talk .22s ease-in-out infinite alternate;transform-origin:top;transform-box:fill-box}
+.davi.happy .wing{animation:flap .35s ease-in-out infinite alternate;transform-origin:top right;transform-box:fill-box}
+.davi.cheer{animation:hop .5s ease-in-out infinite}
+.davi.cheer .wing{animation:flap .2s ease-in-out infinite alternate;transform-origin:top right;transform-box:fill-box}
+@keyframes bob{50%{transform:translateY(-4px)}}
+@keyframes hop{50%{transform:translateY(-12px)}}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes talk{to{transform:scaleY(1.9)}}
+@keyframes flap{to{transform:rotate(-28deg)}}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+.confetti i{position:absolute;top:-20px;font-style:normal;font-size:22px;animation:fall 2.2s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.8}}
+@media (prefers-reduced-motion: reduce){.guide .davi,.davi *,.davi.cheer{animation:none!important}.confetti{display:none}}
 </style>
 
-<div class="app" id="app"></div>
+<div class="app\" id="app"></div>
 
 <script>
 (function(){
@@ -294,7 +315,7 @@ const mascot=()=>`<svg class="mascot" viewBox="0 0 80 80" aria-hidden="true">
   <ellipse cx="40" cy="52" rx="8" ry="${K()?7:5}" fill="var(--coral)"/>
   <path d="M60 22 q8 -4 10 -14 M60 22 l4 -8" stroke="var(--accent)" stroke-width="3" fill="none" stroke-linecap="round"/>
   <circle cx="70" cy="9" r="4" fill="var(--accent)"/></svg>`;
-const tipBox=l=>`<div class="tip"><span>💡</span><p><b>Dica do professor:</b> ${M(l.tip)}</p></div>`;
+const tipBox=l=>K()?guideHTML(M(l.tip),'idle'):`<div class="tip"><span>💡</span><p><b>Dica do professor:</b> ${M(l.tip)}</p></div>`;
 const demoBox=(extra)=>`<div class="demo" id="demo" hidden><span class="label">Modo demonstração</span>
   <p class="muted" style="font-size:.9rem">O microfone não está disponível aqui. ${extra} Abra o app no navegador do computador ou do celular para usar sua voz de verdade.</p>
   <input type="range" id="sim" min="-150" max="150" value="-120" aria-label="Simular altura da voz"></div>`;
@@ -305,9 +326,73 @@ function nextBtn(i){
 }
 function wireNext(i){const b=$('#nextL');if(b)b.onclick=()=>go(L[i+1]?L[i+1].id:'home');}
 
+/* ---------- Canarinho Davi: the kids' guide ---------- */
+let voiceOn=store.get('voiceOn',true);
+function davi(mood){
+  const mouthOpen=mood==='cheer'||mood==='happy';
+  return `<svg class="davi ${mood||''}" viewBox="0 0 100 100" aria-hidden="true">
+    <path d="M30 22 q4 -14 14 -10 q-2 6 -6 10" fill="var(--sun)"/><path d="M40 18 q8 -12 16 -4 q-6 4 -10 8" fill="#f5a623"/>
+    <ellipse cx="50" cy="58" rx="34" ry="32" fill="var(--sun)"/>
+    <ellipse cx="50" cy="70" rx="20" ry="16" fill="#fff4c9"/>
+    <path class="wing" d="M18 56 q-10 14 4 24 q10 -2 12 -14 z" fill="#f5a623"/>
+    <path class="wing" d="M82 56 q10 14 -4 24 q-10 -2 -12 -14 z" fill="#f5a623" style="transform-origin:top left"/>
+    <circle cx="27" cy="58" r="5" fill="#ff9a8a" opacity=".7"/><circle cx="73" cy="58" r="5" fill="#ff9a8a" opacity=".7"/>
+    ${mood==='think'?'<path d="M30 38 l12 3 M70 38 l-12 3" stroke="#1d2b4f" stroke-width="3" stroke-linecap="round"/>':''}
+    <g class="eye"><circle cx="38" cy="48" r="6.5" fill="#1d2b4f"/><circle cx="40" cy="46" r="2.2" fill="#fff"/></g>
+    <g class="eye"><circle cx="62" cy="48" r="6.5" fill="#1d2b4f"/><circle cx="64" cy="46" r="2.2" fill="#fff"/></g>
+    <path d="M42 56 q8 -6 16 0 q-8 6 -16 0z" fill="#f2604f"/>
+    <path class="beak-low" d="M44 58 q6 ${mouthOpen?10:5} 12 0z" fill="#c9402f"/>
+    <path d="M40 90 l-4 6 M44 90 l0 7 M60 90 l4 6 M56 90 l0 7" stroke="#f5a623" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+function guideHTML(text,mood){
+  return `<div class="guide" id="guide">${davi(mood)}<div class="bubble"><small>Davi, o canarinho</small><p id="gtext">${text}</p>
+    <button class="spk" id="spk" aria-label="${voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi'}">${voiceOn?'🔊':'🔇'}</button></div></div>`;
+}
+let lastSay='',lastMood='';
+function wireGuide(){const b=$('#spk');if(b)b.onclick=()=>{voiceOn=!voiceOn;store.set('voiceOn',voiceOn);
+  b.textContent=voiceOn?'🔊':'🔇';b.setAttribute('aria-label',voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi');
+  if(voiceOn)speak($('#gtext').textContent,true);else stopSpeak();};}
+// update the bubble; speak only when the mic is off (so Davi isn't heard as the student) unless forced
+function guide(text,mood,doSpeak){
+  const g=$('#guide');if(!g)return;
+  if(mood!==lastMood){g.querySelector('.davi').outerHTML=davi(mood);lastMood=mood;}
+  if(text!==lastSay){$('#gtext').textContent=text;lastSay=text;if(doSpeak)speak(text,doSpeak==='force');}
+}
+function pickVoice(){try{const vs=speechSynthesis.getVoices();return vs.find(v=>/pt[-_]BR/i.test(v.lang))||vs.find(v=>/^pt/i.test(v.lang));}catch(e){return null}}
+function speak(text,force){
+  if(!K()||!voiceOn||!('speechSynthesis' in window))return;
+  if(mic&&!force)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/[★⬆⬇🎤▶]/g,''));
+    u.lang='pt-BR';u.rate=1.05;u.pitch=1.6;const v=pickVoice();if(v)u.voice=v;
+    const d=()=>document.querySelector('#guide .davi');
+    u.onstart=()=>d()&&d().classList.add('talk');u.onend=u.onerror=()=>d()&&d().classList.remove('talk');
+    speechSynthesis.speak(u);}catch(e){}
+}
+function stopSpeak(){try{speechSynthesis.cancel()}catch(e){}}
+function confetti(){
+  const c=document.createElement('div');c.className='confetti';
+  for(let k=0;k<26;k++){const i=document.createElement('i');i.textContent=['★','♪','✦','♫'][k%4];
+    i.style.left=Math.random()*100+'vw';i.style.color=['var(--sun)','var(--accent)','var(--ok)','var(--coral)'][k%4];
+    i.style.animationDelay=(Math.random()*.6)+'s';i.style.fontSize=(16+Math.random()*16)+'px';c.appendChild(i);}
+  document.body.appendChild(c);setTimeout(()=>c.remove(),3200);
+}
+const WIN_KID=['Uhuuu! Você conseguiu! Ganhou uma estrela!','Que lindo! Deus te deu uma voz linda!','Isso aí, campeão! Mais uma estrela!','Glória a Deus! Você mandou muito bem!'];
+function celebrate(i){
+  if(!K())return;confetti();
+  guide(WIN_KID[Math.floor(Math.random()*WIN_KID.length)]+(L[i+1]?' Vamos para a próxima aula?':' Você terminou a trilha toda!'),'cheer','force');
+}
+function homeLine(){
+  const n=L.filter(l=>state.done[l.id]).length;
+  if(n===0)return 'Oi! Eu sou o Davi, o canarinho. Vou te ensinar a cantar para louvar a Deus! Toque na aula 1 para começar.';
+  if(n===L.length)return 'Você completou a trilha inteira! Agora é cantar louvores com essa voz linda!';
+  const nx=L.find((l,i)=>!state.done[l.id]&&isUnlocked(i));
+  return `Que bom te ver de novo! Você já tem ${n} ${n===1?'estrela':'estrelas'}.`+(nx?` Hoje vamos fazer: ${nx.title.kid}.`:'');
+}
+
 /* ---------- render ---------- */
 let cleanup=null;
-function go(view){if(cleanup){cleanup();cleanup=null;}state.view=view;render();window.scrollTo(0,0);}
+function go(view){if(cleanup){cleanup();cleanup=null;}stopSpeak();lastSay='';lastMood='';state.view=view;render();window.scrollTo(0,0);}
 
 function render(){
   document.body.classList.toggle('kid',K());
@@ -321,7 +406,8 @@ function render(){
     const stars=L.filter(l=>state.done[l.id]).length;
     const nextI=L.findIndex((l,i)=>!state.done[l.id]&&isUnlocked(i));
     app.innerHTML=head+`
-    <section class="hero">${mascot()}<div>
+    ${K()?guideHTML(homeLine(),'happy'):''}
+    <section class="hero" ${K()?'hidden':''}>${mascot()}<div>
       <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':'Prepare sua voz para louvar'}</h1>
       <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
     <div class="statrow">
@@ -344,7 +430,8 @@ function render(){
     <p class="verse">"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras." Salmo 96:1</p>
     <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão<br>
       <button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button></footer>`;
-    app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);});
+    app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide('Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
+    if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
     $('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
@@ -354,6 +441,7 @@ function render(){
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain})[l.type]($('#body'),l,i);
+    if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   $('#m-kid').onclick=()=>{state.mode='kid';store.set('mode','kid');go(state.view)};
   $('#m-adult').onclick=()=>{state.mode='adult';store.set('mode','adult');go(state.view)};
@@ -371,10 +459,10 @@ function viewBreath(el,l,i){
   function clear(){timers.forEach(clearTimeout);timers=[];clearInterval(tick);}
   btn.onclick=()=>{clear();btn.disabled=true;let at=0;
     for(let c=0;c<4;c++)ph.forEach(([s,sc,si])=>{timers.push(setTimeout(()=>{cyc.textContent=`Ciclo ${c+1} de 4`;
-      ball.style.transitionDuration=s+'s';ball.style.transform=`scale(${sc})`;sy.textContent=say[si];let left=s;cnt.textContent=left;
+      ball.style.transitionDuration=s+'s';ball.style.transform=`scale(${sc})`;sy.textContent=say[si];if(K())guide(say[si]+'!',si===2?'happy':'idle',true);let left=s;cnt.textContent=left;
       clearInterval(tick);tick=setInterval(()=>{left--;cnt.textContent=left>0?left:''},1000);},at*1000));at+=s;});
     timers.push(setTimeout(()=>{clear();cnt.textContent='';sy.textContent=K()?'Muito bem! ★':'Concluído ★';ball.style.transform='scale(.7)';
-      markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);},at*1000));};
+      markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);},at*1000));};
   cleanup=clear;
 }
 
@@ -390,8 +478,8 @@ function viewWarm(el,l,i){
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   const items=[...el.querySelectorAll('.steps li')],tm=$('#tm'),btn=$('#go');let k=-1,left=0,iv=null;
   function next(){if(k>=0)items[k].classList.replace('on','ok');k++;
-    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Voz quentinha! ★':'Voz aquecida ★';markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);return;}
-    items[k].classList.add('on');left=SEC;tm.textContent=left+'s';}
+    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Voz quentinha! ★':'Voz aquecida ★';markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
+    items[k].classList.add('on');left=SEC;tm.textContent=left+'s';if(K())guide(steps[k][1],'happy',true);}
   btn.onclick=()=>{items.forEach(x=>x.className='');k=-1;btn.disabled=true;next();clearInterval(iv);iv=setInterval(()=>{left--;tm.textContent=left+'s';if(left<=0)next();},1000);};
   $('#ex').onclick=()=>{const lo=midiToHz(baseNote(l));playTone(lo,3,lo*2.5)};
   cleanup=()=>clearInterval(iv);
@@ -422,7 +510,7 @@ function viewSustain(el,l,i){
     if(on){run+=dt;quiet=0;}else{quiet+=dt;if(quiet>.35){if(run>best){best=run;$('#best').textContent=`Seu recorde: ${best.toFixed(1).replace('.',',')}s`;}run=0;}}
     $('#t').textContent=run.toFixed(1).replace('.',',')+'s';$('#pg').style.width=Math.min(100,run/goal*100)+'%';
     if(!won&&listening)$('#hint').textContent=on?(run>goal*.6?(K()?'Quase lá, segura!':'Mantenha constante!'):(K()?'Isso, devagarinho...':'Bom, ar contínuo...')):(K()?'Respire fundo e solte "uuu"':'Respire e sustente um "uuu"');
-    if(!won&&run>=goal){won=true;markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Fôlego de campeão!':'Meta de sustentação alcançada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);}
+    if(!won&&run>=goal){won=true;markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Fôlego de campeão!':'Meta de sustentação alcançada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);}
   }
   cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
 }
@@ -445,7 +533,13 @@ function viewSeq(el,l,i){
     ${demoBox('Arraste para simular a voz e ver como o app reage.')}
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   const cv=$('#cv'),g=cv.getContext('2d'),needle=$('#needle'),hint=$('#hint'),pg=$('#pg'),you=$('#you'),dots=[...el.querySelectorAll('#dots span')];
-  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0;
+  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0,stepT=0,moodT=0;
+  function react(kind){ if(!K()||won)return; const t=performance.now(); if(t-moodT<900)return; moodT=t;
+    if(kind==='ok')guide(step>0&&!single?'Isso! Segura... ':'Isso! Você está na nota, segura!','happy');
+    else if(kind==='up')guide('Sobe um pouquinho a voz, mais fininha!','think');
+    else if(kind==='down')guide('Desce um pouquinho a voz, mais grossinha!','think');
+    else if(kind==='help')guide('Tudo bem errar, todo cantor erra! Pare, toque em Ouvir e tente de novo. Você consegue!','idle');
+    else if(kind==='next')guide(l.labels?`Agora a vogal ${l.labels[step]}!`:`Agora a nota ${nm(notes[step])}!`,'happy'); }
   const H={up:K()?'Sobe um pouquinho! ⬆':'Um pouco abaixo: suba ⬆',down:K()?'Desce um pouquinho! ⬇':'Um pouco acima: desça ⬇',
     ok:K()?'Isso! Segura assim!':'Afinado. Sustente!',silent:K()?'Cante "lá" quando quiser':'Cante quando estiver pronto',gap:K()?'Respira... e a próxima!':'Pausa curta... próxima nota'};
   function show(){const m=notes[step];$('#tn').textContent=l.labels?`${l.labels[step]} · ${nm(m)}`:nm(m);$('#hz').textContent=Math.round(midiToHz(m))+' Hz';
@@ -490,15 +584,16 @@ function viewSeq(el,l,i){
     needle.style.left=(cents==null?50:50+Math.max(-100,Math.min(100,cents))/2)+'%';
     if(!won&&listening){
       if(needGap){if(cents==null){gapT+=dt;if(gapT>=.25)needGap=false;}hint.textContent=H.gap;pg.style.width='0%';draw(cents);return;}
+      stepT+=dt;
       if(cents==null){hint.textContent=H.silent;held=Math.max(0,held-dt*.5);}
-      else if(Math.abs(cents)<=tol){hint.textContent=H.ok;held+=dt;}
-      else{hint.textContent=cents<0?H.up:H.down;held=Math.max(0,held-dt*.3);}
+      else if(Math.abs(cents)<=tol){hint.textContent=H.ok;held+=dt;react('ok');}
+      else{hint.textContent=cents<0?H.up:H.down;held=Math.max(0,held-dt*.3);react(stepT>9?'help':(cents<0?'up':'down'));}
       pg.style.width=Math.min(100,held/hold*100)+'%';
       if(held>=hold){held=0;step++;
         if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');markDone(l.id);
           hint.innerHTML=`<span class="win"><span class="big">★</span>${single?(K()?'Você acertou a nota!':'Nota sustentada com afinação!'):(K()?'Você cantou tudinho!':'Sequência completa e afinada!')}</span>`;
-          $('#after').innerHTML=nextBtn(i);wireNext(i);}
-        else{show();trail=[];if(l.gap||(l.gapRepeats&&notes[step]===notes[step-1])){needGap=true;gapT=0;}}}
+          $('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);}
+        else{show();trail=[];stepT=0;moodT=0;react('next');if(l.gap||(l.gapRepeats&&notes[step]===notes[step-1])){needGap=true;gapT=0;}}}
     }
     draw(cents);
   }
