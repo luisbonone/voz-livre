@@ -298,7 +298,19 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .syl{display:flex;gap:10px;align-items:flex-start;background:var(--band);border:2px dashed var(--accent);border-radius:14px;padding:10px 14px;margin:0 0 12px;font-size:.95rem}.syl span{font-size:1.3em}.syl p{margin:0}.syl small{opacity:.85}
 .bandchip{font-size:.8rem;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--band);color:var(--accent)}
 .vcard.muda details{margin-top:6px;font-size:.9rem}.vcard.muda summary{cursor:pointer;font-weight:600}.vcard.muda ul{margin:6px 0 0;padding-left:18px}
-.mudatip{margin-bottom:12px}.bandrow{margin-top:8px}.bandrow select{margin-left:6px;padding:6px;border-radius:8px}
+.mudatip{margin-bottom:12px}.bandrow{margin-top:8px;min-width:0}.bandrow label{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;font-weight:700}
+.bandrow select{width:100%;max-width:100%;box-sizing:border-box;margin:0;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink,inherit);font:inherit}
+select,input,textarea{max-width:100%;box-sizing:border-box}
+@media (max-width:640px){
+ table.students{min-width:0}
+ table.students thead{display:none}
+ table.students,table.students tbody,table.students tr,table.students td{display:block;width:100%;box-sizing:border-box}
+ table.students tr{padding:10px 4px;border-bottom:1px solid var(--line)}
+ table.students tbody tr:last-child{border-bottom:0}
+ table.students td{border:0;padding:3px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:right}
+ table.students td:first-child{display:block;text-align:left;font-size:1.05rem;padding-bottom:6px}
+ table.students td:not(:first-child)::before{content:attr(data-l);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:left}
+}
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;background:rgba(20,30,40,.92);color:#fff;padding:10px 16px;border-radius:999px;font-size:.9rem;font-weight:600;max-width:90vw;text-align:center}
 </style>
 
@@ -2450,6 +2462,7 @@ window.addEventListener('popstate',e=>{
     if(Date.now()-exitArm<2500){history.back();return;}
     exitArm=Date.now();toast('Toque de novo em voltar para sair');try{history.pushState({v:'home'},'')}catch(x){}return;}
   navDepth=Math.max(0,navDepth-1);navPop=true;go(st.v);navPop=false;});
+new MutationObserver(()=>{document.querySelectorAll('table.students:not([data-lb])').forEach(t=>{t.dataset.lb=1;const h=[...t.querySelectorAll('thead th')].map(x=>x.textContent);t.querySelectorAll('tbody tr').forEach(r=>[...r.children].forEach((td,i)=>td.dataset.l=h[i]||''));});}).observe(document.getElementById('app'),{childList:true,subtree:true});
 render();
 initCloud();
 })();
