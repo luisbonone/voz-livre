@@ -188,6 +188,16 @@ body.wide .app{max-width:1040px}
 .reqs li{display:flex;gap:8px;align-items:center}
 .daily{border:2px solid var(--accent)}
 .rec{border:2px dashed var(--accent)}
+.staffsvg{width:100%;max-width:360px;height:auto;display:block;margin:0 auto}
+.rhythm{display:flex;gap:4px;height:46px}
+.rhythm span{display:grid;place-items:center;border-radius:10px;background:var(--band);color:var(--accent);font-weight:800;border:2px solid var(--accent);min-width:0;font-size:.85rem}
+.rhythm span.hit{background:var(--ok);border-color:var(--ok);color:#fff}
+.rhythm span.miss{background:rgba(242,96,79,.15);border-color:var(--coral);color:var(--coral)}
+.tapbtn{width:100%;padding:28px 10px;font-family:var(--display);font-size:2rem;font-weight:800;border-radius:var(--r);border:0;background:var(--accent);color:var(--accent-ink);touch-action:manipulation;user-select:none}
+.tapbtn:active{transform:scale(.98)}
+.beatdots{display:flex;gap:8px;justify-content:center}
+.beatdots i{width:14px;height:14px;border-radius:50%;background:var(--line)}
+.beatdots i.on{background:var(--accent)}
 .rec audio,.reclist audio{width:100%}
 .reclist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
 .reclist li{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
@@ -417,7 +427,7 @@ const L=[
 const LEVELS=[
   {n:1,title:'Iniciante',sub:{kid:'Conhecendo a sua voz',adult:'Postura, respiração, saúde vocal e a primeira nota afinada'}},
   {n:2,title:'Básico',sub:{kid:'Escalas, ouvido e os primeiros louvores',adult:'Escalas, intervalos, vogais, apoio e os primeiros hinos'}},
-  {n:3,title:'Intermediário',soon:true,topics:['Registros de peito e de cabeça','Passagem de registro sem quebrar a voz','Aumentar a extensão','Ritmo e tempo','Ler cifra e partitura simples']},
+  {n:3,title:'Intermediário',sub:{kid:'Voz de peito, voz de cabeça, ritmo e leitura',adult:'Registros, passagem, extensão, ritmo e leitura de cifra e partitura'}},
   {n:4,title:'Avançado',soon:true,topics:['Vibrato natural','Agilidade e melismas','Voz forte com saúde (belting)','Dinâmica e interpretação','Repertório de hinos mais difíceis']},
   {n:5,title:'Ministério',soon:true,topics:['Cantar em grupo','Segunda e terceira vozes (harmonia)','Cantar com a banda','Técnica de microfone','Presença no altar e ministração','Preparar um louvor completo']}
 ];
@@ -426,7 +436,11 @@ UNITS.length=0;UNITS.push(
   {id:'n1b',level:1,title:{kid:'A primeira nota',adult:'A primeira nota'}},
   {id:'n2a',level:2,title:{kid:'Escadas e ouvido',adult:'Escalas e ouvido'}},
   {id:'n2b',level:2,title:{kid:'Falando e cantando',adult:'Expressão e apoio'}},
-  {id:'n2c',level:2,title:{kid:'Primeiros louvores',adult:'Primeiros louvores'}});
+  {id:'n2c',level:2,title:{kid:'Primeiros louvores',adult:'Primeiros louvores'}},
+  {id:'n3a',level:3,title:{kid:'Voz de peito e voz de cabeça',adult:'Registros e passagem'}},
+  {id:'n3b',level:3,title:{kid:'Voz mais longe',adult:'Extensão'}},
+  {id:'n3c',level:3,title:{kid:'Ritmo e leitura',adult:'Ritmo, cifra e partitura'}},
+  {id:'n3d',level:3,title:{kid:'Louvor do nível 3',adult:'Repertório'}});
 L.push(
  {id:'posture',type:'guided',sec:20,
   title:{kid:'Corpo de cantor',adult:'Postura para cantar'},
@@ -490,15 +504,104 @@ L.push(
   tip:{kid:'Você chegou longe! Nesta prova tem ouvido, escala e um louvor. Respire fundo e vamos!',adult:'Prova final do Básico: reconhecer intervalos, cantar a escala afinada e um hino no tempo.'},
   parts:[{kind:'ear',mode:'int',n:8,pass:65,title:'Parte 1: intervalos'},{kind:'seq',steps:[0,2,4,5,7,5,4,2,0],pass:{kid:55,adult:65},title:'Parte 2: escala afinada'},{kind:'follow',ref:'follow2',pass:{kid:50,adult:60},title:'Parte 3: louvor no ritmo'}]}
 );
+const JOY=[4,4,5,7,7,5,4,2, 0,0,2,4,4,2,2, 4,4,5,7,7,5,4,2, 0,0,2,4,2,0,0];
+const JOY_B=[1,1,1,1,1,1,1,1, 1,1,1,1,1.5,.5,2, 1,1,1,1,1,1,1,1, 1,1,1,1,1.5,.5,2];
+const JOY_L=['Ju-','bi-','lo-','sos','te a-','do-','ra-','mos,','Deus','de','gló-','ria','e','a-','mor;','Co-','ra-','ções','a','ti','se','a-','brem','co-','mo','as','flo-','res','ao','sol.'];
+L.push(
+ {id:'theory_reg',type:'theory',
+  title:{kid:'Voz de peito e voz de cabeça',adult:'Teoria: registros vocais'},
+  sub:{kid:'A voz tem dois andares',adult:'Peito, cabeça, passagem e voz mista'},
+  tip:{kid:'A sua voz é como uma casa de dois andares. Vamos descobrir!',adult:'Entender os registros é o passo mais importante para cantar agudos sem gritar e sem a voz quebrar.'},
+  slides:{kid:[['Voz de peito','É a voz grossinha, a mesma que você usa para falar. Coloque a mão no peito e fale "ôôô": sentiu tremer?'],['Voz de cabeça','É a voz fininha e leve, como um passarinho ou uma coruja fazendo "uuu". Ela vibra mais na cabeça.'],['A escada entre as duas','Quando a voz sobe do peito para a cabeça, às vezes ela "quebra". Vamos treinar para subir a escada sem tropeçar!']],
+          adult:[['Voz de peito','Registro grave e médio, o da fala. As pregas vocais vibram mais espessas; a vibração é sentida no peito. Som cheio e potente.'],['Voz de cabeça','Registro agudo: as pregas ficam mais finas e alongadas. Som mais leve, vibração sentida na face e na cabeça.'],['Passagem','Região de transição entre os registros. Sem treino a voz "quebra" ou o cantor empurra o peito para cima, gritando. O objetivo é uma transição suave.'],['Voz mista','Equilíbrio entre os dois registros: brilho do peito com a leveza da cabeça. Exercícios de trato vocal semiocluído (canudo, vibração de lábios, "ng") ajudam a construí-la.']]},
+  quiz:[{q:'Qual registro usamos para falar?',o:['Voz de cabeça','Voz de peito','Falsete'],a:1},
+        {q:'O que acontece na passagem sem treino?',o:['A voz quebra ou o cantor grita','Nada, é sempre igual','A voz fica mais grave'],a:0},
+        {q:'Qual exercício ajuda a equilibrar os registros?',o:['Gritar no agudo','Cantar com canudo ou vibração de lábios','Cantar só no grave'],a:1}]},
+ {id:'chest',type:'seq',steps:[7,5,4,2,0],
+  title:{kid:'Voz de urso',adult:'Voz de peito'},
+  sub:{kid:'Cantar grossinho e firme',adult:'5-4-3-2-1 em "mã", na região média-grave'},
+  tip:{kid:'Cante "mã" como um urso simpático, descendo a escada. Sinta o peito tremer!',adult:'Use "mã" com a boca bem aberta, sentindo a vibração no peito. Sem empurrar: volume de conversa animada.'}},
+ {id:'head',type:'seq',steps:[12,11,9,7,9,11,12],
+  title:{kid:'Voz de coruja',adult:'Voz de cabeça'},
+  sub:{kid:'Cantar fininho e leve',adult:'Agudos leves em "u"'},
+  tip:{kid:'Faça "uuu" fininho como uma coruja. Bem leve, sem força nenhuma!',adult:'Cante em "u" com pouco volume e a laringe relaxada. Leveza primeiro: a força vem depois, com a voz mista.'}},
+ {id:'sovt',type:'guided',sec:30,
+  title:{kid:'Canudinho mágico',adult:'Trato vocal semiocluído'},
+  sub:{kid:'Cantar com canudo, motinha e "ng"',adult:'Canudo, vibração e "ng" na passagem'},
+  tip:{kid:'Pegue um canudinho! Cantar por dentro dele ajuda a voz a subir sem quebrar.',adult:'Estes exercícios criam uma pressão de retorno que equilibra ar e pregas vocais. São os mais usados por fonoaudiólogos para trabalhar a passagem.'},
+  items:{kid:[['Canudo','Cante "uuu" dentro de um canudo, subindo e descendo como sirene.'],['Motinha na escada','Faça "brrr" subindo do grave até o agudo e voltando.'],['Ng do sino','Diga "sing" e segure o "ng" final, subindo e descendo a voz.'],['Gui-gui','Cante "gui" pulando do grave para o agudo, bem leve.']],
+         adult:[['Canudo','Fonação em canudo (de preferência fino) com glissandos de oitava. Bochechas sem inflar.'],['Vibração de lábios em oitava','"Brrr" em glissando de uma oitava, atravessando a passagem sem mudar o fluxo de ar.'],['"Ng" em sirene','Língua no "ng" de "sing": sirene suave do grave ao agudo. Mantenha o som contínuo.'],['"Gui" em saltos','"Gui" em saltos de oitava 1-8-1, leve. O "g" ajuda a fechar as pregas; o "i" mantém o som para a frente.']]}},
+ {id:'passage',type:'follow',steps:[0,2,4,5,7,9,11,12,11,9,7,5,4,2,0],beats:[.5,.5,.5,.5,.5,.5,.5,1.5,.5,.5,.5,.5,.5,.5,1.5],
+  title:{kid:'Subindo sem tropeçar',adult:'Escala de oitava na passagem'},
+  sub:{kid:'A escada inteira, sem a voz quebrar',adult:'Oitava inteira em "u", ligada'},
+  tip:{kid:'Suba a escada toda em "uuu", bem levinho no alto. Se quebrar, tudo bem: tente de novo mais leve!',adult:'Escala de uma oitava em "u", ligada, diminuindo o volume conforme sobe. A meta é não haver quebra na passagem.'}},
+ {id:'range_up',type:'seq',steps:[0,4,7,12,7,4,0, 2,6,9,14,9,6,2],
+  title:{kid:'Foguete',adult:'Extensão: arpejo para o agudo'},
+  sub:{kid:'Subir como um foguete',adult:'1-3-5-8 em duas tonalidades'},
+  tip:{kid:'Cante "iá" subindo como foguete e descendo de paraquedas. A segunda vez começa mais alto!',adult:'Arpejo 1-3-5-8-5-3-1 em "iá", repetido um tom acima. Leve no topo; a extensão cresce com repetição, não com força.'}},
+ {id:'range_low',type:'seq',steps:[0,-2,-3,-5,-3,-2,0],
+  title:{kid:'Mergulho',adult:'Extensão: graves com apoio'},
+  sub:{kid:'Descer bem fundo',adult:'Graves sem afundar o queixo'},
+  tip:{kid:'Agora a voz mergulha para o fundo do mar! Cante "ôô" descendo, sem apertar.',adult:'Desça em "ô" mantendo o apoio. Não abaixe o queixo nem empurre a laringe para baixo: o grave precisa de ar, não de pressão.'}},
+ {id:'octave',type:'seq',steps:[0,12,0,2,14,2],hold:{kid:.8,adult:1},
+  title:{kid:'Pulo gigante',adult:'Saltos de oitava'},
+  sub:{kid:'Do grave ao agudo de uma vez',adult:'1-8-1, precisão nos saltos'},
+  tip:{kid:'Pense na nota de cima antes de pular! Pule leve, como um canguru.',adult:'Imagine a nota de chegada antes do salto. Mantenha o mesmo fluxo de ar e deixe a voz se ajustar ao registro de cabeça.'}},
+ {id:'theory_rhythm',type:'theory',
+  title:{kid:'O coração da música',adult:'Teoria: ritmo e compasso'},
+  sub:{kid:'Pulso, tempo e notas compridas e curtas',adult:'Pulso, compasso e figuras'},
+  tip:{kid:'Toda música tem um coração batendo. Esse coração se chama pulso!',adult:'Cantar afinado fora do tempo ainda é cantar errado. Ritmo é metade da música.'},
+  slides:{kid:[['O pulso','É a batida que não para, como o coração ou um relógio: tum, tum, tum, tum.'],['Notas compridas e curtas','Algumas notas duram uma batida, outras duram duas, outras só meia batida.'],['Contando','Muitos louvores contam 1, 2, 3, 4 e começam de novo. Bater palma junto ajuda!']],
+          adult:[['Pulso','Batida regular que organiza a música. O metrônomo marca o pulso em batidas por minuto (BPM).'],['Compasso','Agrupa os pulsos: 2/4 (marcha), 3/4 (valsa, como "Preciosa Graça") e 4/4 (a maioria dos louvores).'],['Figuras','Em compassos de denominador 4: semibreve = 4 tempos, mínima = 2, semínima = 1, colcheia = 1/2.'],['Ponto de aumento','O ponto ao lado da nota aumenta metade do valor: mínima pontuada = 3 tempos; semínima pontuada = 1 tempo e meio.']]},
+  quiz:[{q:'Quantos tempos dura uma mínima (em 4/4)?',o:['1','2','4'],a:1},
+        {q:'"Preciosa Graça" está em qual compasso?',o:['2/4','3/4','4/4'],a:1},
+        {q:'O que o metrônomo marca?',o:['A afinação','O pulso','O volume'],a:1}]},
+ {id:'tap1',type:'tap',
+  title:{kid:'Bateria de palmas',adult:'Ritmo: leitura e precisão'},
+  sub:{kid:'Bata no ritmo certinho',adult:'Toque as figuras no tempo do metrônomo'},
+  tip:{kid:'Escute o tic-tac e toque no botão TA bem na hora de cada nota. As notas compridas valem mais batidas!',adult:'Leia o padrão, ouça a contagem de 4 tempos e toque cada nota no ataque. A barra mostra a duração de cada figura.'}},
+ {id:'theory_read',type:'theory',
+  title:{kid:'Lendo as notas',adult:'Teoria: cifra e partitura'},
+  sub:{kid:'As notas escritas no papel',adult:'Pauta, clave de sol e cifras'},
+  tip:{kid:'As notas podem ser escritas! Vamos aprender a ler, como as letras do alfabeto.',adult:'Ler cifra e partitura básica dá autonomia para aprender louvores novos e conversar com os músicos.'},
+  slides:{kid:[['A pauta','São 5 linhas, como uma escadinha. As notas moram nas linhas e nos espaços.'],['A clave de sol','É o desenho no começo da pauta. Ela diz que a 2ª linha (de baixo para cima) é o Sol.'],['Letras das notas','Os músicos também escrevem as notas com letras: C é Dó, D é Ré, E é Mi, F é Fá, G é Sol, A é Lá e B é Si.']],
+          adult:[['Pauta','Cinco linhas e quatro espaços. Quanto mais alta a nota na pauta, mais aguda. Linhas suplementares estendem a pauta.'],['Clave de sol','Define a 2ª linha como Sol. Linhas (de baixo para cima): Mi, Sol, Si, Ré, Fá. Espaços: Fá, Lá, Dó, Mi. O Dó central fica numa linha suplementar abaixo.'],['Cifras','A = Lá, B = Si, C = Dó, D = Ré, E = Mi, F = Fá, G = Sol. "m" indica acorde menor (Am = Lá menor) e "7" a sétima (G7).'],['Para o cantor','A primeira nota da melodia e a tonalidade (o acorde inicial da cifra) ajudam a começar no tom certo com a banda.']]},
+  quiz:[{q:'Na clave de sol, a 2ª linha é qual nota?',o:['Dó','Sol','Mi'],a:1},
+        {q:'Qual nota é a cifra D?',o:['Dó','Ré','Fá'],a:1},
+        {q:'O que significa Am?',o:['Lá maior','Lá menor','Lá com sétima'],a:1}]},
+ {id:'staff1',type:'staff',n:8,
+  title:{kid:'Que nota é essa?',adult:'Leitura: nomes das notas'},
+  sub:{kid:'Descubra as notas na pauta',adult:'Notas na clave de sol e cifras'},
+  tip:{kid:'Olhe onde a bolinha está na pauta e escolha o nome da nota. Lembre: a 2ª linha é o Sol!',adult:'Identifique as notas na clave de sol (do Dó central ao Sol agudo) e as cifras. Use o Sol da 2ª linha como referência.'}},
+ {id:'song4',type:'seq',steps:JOY.slice(0,15),lyrics:JOY_L.slice(0,15),gapRepeats:true,
+  credit:'Melodia "Hymn to Joy", Ludwig van Beethoven, 1824 (domínio público), usada no hino "Joyful, Joyful, We Adore Thee". Letra adaptada para o app.',
+  title:{kid:'Louvor: Jubilosos te adoramos',adult:'Louvor: Jubilosos te adoramos'},
+  sub:{kid:'A primeira metade do hino',adult:'Primeira metade, nota por nota'},
+  tip:{kid:'Esse hino é muito alegre! Cante cada sílaba com um sorriso.',adult:'Melodia em graus conjuntos com uma síncope no fim das frases. Cante legato e articule bem a letra.'}},
+ {id:'follow5',type:'follow',steps:JOY,beats:JOY_B,lyrics:JOY_L,
+  credit:'Melodia "Hymn to Joy", Beethoven, 1824 (domínio público). Letra adaptada para o app.',
+  title:{kid:'Siga o louvor: Jubilosos',adult:'Siga a melodia: Jubilosos te adoramos'},
+  sub:{kid:'O hino inteiro no ritmo',adult:'Hino completo, com o ritmo pontuado'},
+  tip:{kid:'Agora o hino inteiro! Atenção na nota comprida e na curtinha do fim de cada frase.',adult:'Atenção à semínima pontuada seguida de colcheia no fim das frases. Mantenha o pulso e respire nas pausas de frase.'}},
+ {id:'exam3',type:'exam',
+  title:{kid:'Prova do Nível 3',adult:'Prova do Nível 3'},
+  sub:{kid:'Leitura, ritmo e louvor',adult:'Leitura, ritmo e um hino completo'},
+  tip:{kid:'Você já é um cantor de nível 3! Mostre a leitura, o ritmo e o louvor.',adult:'Prova do Intermediário: leitura de notas, precisão rítmica e o hino completo no tempo.'},
+  parts:[{kind:'staff',n:8,pass:75,title:'Parte 1: leitura'},{kind:'tap',pass:{kid:60,adult:70},title:'Parte 2: ritmo'},{kind:'follow',ref:'follow5',pass:{kid:50,adult:60},title:'Parte 3: louvor'}]}
+);
 const ORDER={posture:'n1a',breath:'n1a',health:'n1a',warm:'n1a', ear_hl:'n1b',first:'n1b',sustain:'n1b',voicehow:'n1b',exam1:'n1b',
   vowels:'n2a',scale3:'n2a',scale5:'n2a',theory_scale:'n2a',updown:'n2a',ear_int:'n2a',leaps:'n2a',long:'n2a',follow1:'n2a',
   support:'n2b',diction:'n2b',dyn:'n2b',
-  song1:'n2c',follow2:'n2c',song2:'n2c',follow3:'n2c',song3:'n2c',follow4:'n2c',exam2:'n2c'};
+  song1:'n2c',follow2:'n2c',song2:'n2c',follow3:'n2c',song3:'n2c',follow4:'n2c',exam2:'n2c',
+  theory_reg:'n3a',chest:'n3a',head:'n3a',sovt:'n3a',passage:'n3a',
+  range_up:'n3b',range_low:'n3b',octave:'n3b',
+  theory_rhythm:'n3c',tap1:'n3c',theory_read:'n3c',staff1:'n3c',
+  song4:'n3d',follow5:'n3d',exam3:'n3d'};
 const ORD_KEYS=Object.keys(ORDER);
 L.forEach(l=>l.unit=ORDER[l.id]);
 L.sort((a,b)=>ORD_KEYS.indexOf(a.id)-ORD_KEYS.indexOf(b.id));
 const levelOf=l=>(UNITS.find(u=>u.id===l.unit)||{}).level;
-function studentLevel(done){return done&&done.exam2?3:(done&&done.exam1?2:1);}
+function studentLevel(done){return done&&done.exam3?4:(done&&done.exam2?3:(done&&done.exam1?2:1));}
 const idx=id=>L.findIndex(l=>l.id===id);
 const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id];
 
@@ -631,7 +734,7 @@ function homeLine(){
   if(typeof cloud!=='undefined'&&cloud.msgs.some(m=>!m.read_at))return 'Seu professor deixou um recado para você! Leia aqui embaixo.';
   if(n===0&&!state.vt)return 'Oi! Eu sou o Davi, o canarinho. Vou te ensinar a cantar para louvar a Deus! Primeiro, vamos fazer o teste de voz?';
   if(n===0)return 'Já conheço a sua voz! Agora toque na aula 1 para começar.';
-  if(n===L.length)return 'Você completou os níveis 1 e 2! Continue com o aquecimento do dia enquanto preparamos o próximo nível.';
+  if(n===L.length)return 'Você completou os níveis 1, 2 e 3! Continue com o aquecimento do dia enquanto preparamos o próximo nível.';
   const nx=L.find((l,i)=>!state.done[l.id]&&isUnlocked(i));
   return `Que bom te ver de novo! Você já tem ${n} ${n===1?'estrela':'estrelas'}.`+(nx?` Hoje vamos fazer: ${nx.title.kid}.`:'');
 }
@@ -923,7 +1026,7 @@ function render(){
       <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
       <div class="stat"><b>🔥 ${streakNow()}</b><small>${streakNow()===1?'dia seguido':'dias seguidos'}</small></div>
       <div class="stat"><b>Nível ${studentLevel(state.done)}</b><small>${LEVELS[studentLevel(state.done)-1].title}</small></div>
-      <div class="stat" hidden><b>${Math.round(stars/L.length*100)}%</b><small>do curso (níveis 1 e 2)</small></div>
+      <div class="stat" hidden><b>${Math.round(stars/L.length*100)}%</b><small>do curso</small></div>
     </div>
     ${state.vt?`<section class="vcard"><div><span class="label">Sua voz</span><b>${state.vt.cls}</b><small>${nmo(state.vt.low)} até ${nmo(state.vt.high)} · as aulas usam o seu tom</small></div><button class="btn ghost" id="vtgo">Refazer teste</button></section>`
       :`<section class="vcard new"><div><span class="label">Comece por aqui</span><b>Teste de voz</b><small>1 minuto para o app descobrir o tom certo da sua voz</small></div><button class="btn" id="vtgo">Fazer o teste</button></section>`}
@@ -971,7 +1074,7 @@ function render(){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
-    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam})[l.type]($('#body'),l,i);
+    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap})[l.type]($('#body'),l,i);
     if(['seq','follow','sustain','dyn','guided'].includes(l.type)&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
@@ -1179,6 +1282,89 @@ function viewEar(el,l,i,opts){
   cleanup=null;
 }
 
+/* ---------- reading quiz: notes on the treble staff + chord letters ---------- */
+const DIAT=['Dó','Ré','Mi','Fá','Sol','Lá','Si'],DIAT_MIDI=[0,2,4,5,7,9,11],CIFRA=['C','D','E','F','G','A','B'];
+function staffSVG(p){ // p: diatonic steps from C4 (0) to G5 (11)
+  const W=320,H=150,top=40,gap=14,bottom=top+4*gap,x=200,y=bottom-(p-2)*(gap/2);
+  let svg=`<svg class="staffsvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Nota na pauta">`;
+  for(let k=0;k<5;k++)svg+=`<line x1="20" x2="${W-20}" y1="${top+k*gap}" y2="${top+k*gap}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  svg+=`<text x="28" y="${bottom+14}" font-size="86" fill="var(--ink)" font-family="'Noto Music','Segoe UI Symbol','Apple Symbols',serif">𝄞</text>`;
+  if(p<=0)svg+=`<line x1="${x-18}" x2="${x+18}" y1="${bottom+gap}" y2="${bottom+gap}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  if(p>=12)svg+=`<line x1="${x-18}" x2="${x+18}" y1="${top-gap}" y2="${top-gap}" stroke="var(--ink)" stroke-width="1.5"/>`;
+  svg+=`<ellipse cx="${x}" cy="${y}" rx="9.5" ry="7" transform="rotate(-20 ${x} ${y})" fill="var(--accent)"/>`;
+  const up=p<6;svg+=`<line x1="${up?x+8.5:x-8.5}" x2="${up?x+8.5:x-8.5}" y1="${y}" y2="${up?y-44:y+44}" stroke="var(--accent)" stroke-width="2"/>`;
+  return svg+'</svg>';}
+function viewStaff(el,l,i,opts){
+  const n=l.n||8,pass=(opts&&opts.pass)||75,qs=[];
+  for(let k=0;k<n;k++){if(k%4===3){const d=Math.floor(Math.random()*7);qs.push({kind:'cifra',d});}else{const p=Math.floor(Math.random()*12);qs.push({kind:'staff',p,d:p%7});}}
+  let k=0,right=0,answered=false;
+  el.innerHTML=`<div class="panel">${opts?'':tipBox(l)}<p class="qcount" id="qc"></p><div id="q"></div>
+    <div class="choices" id="ch">${DIAT.map((t,j)=>`<button data-j="${j}">${t}</button>`).join('')}</div><p class="hint" id="hint"></p>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="nextq" hidden>Próxima →</button></div><div id="scorebox"></div><div class="row" style="justify-content:center" id="after"></div></div>`;
+  function show(){answered=false;const q=qs[k];$('#qc').textContent=`Pergunta ${k+1} de ${n}`;$('#hint').textContent='';$('#nextq').hidden=true;
+    $('#q').innerHTML=q.kind==='staff'?staffSVG(q.p)+'<p style="text-align:center" class="muted">Que nota é esta?</p>':`<p style="text-align:center;font-family:var(--display);font-size:3rem;font-weight:800;color:var(--accent)">${CIFRA[q.d]}</p><p style="text-align:center" class="muted">Que nota é esta cifra?</p>`;
+    el.querySelectorAll('#ch button').forEach(b=>{b.className='';b.disabled=false;});}
+  show();
+  el.querySelectorAll('#ch button').forEach(b=>b.onclick=()=>{if(answered)return;answered=true;const j=+b.dataset.j,q=qs[k];
+    el.querySelectorAll('#ch button').forEach(x=>x.disabled=true);
+    const midi=60+(q.kind==='staff'?Math.floor(q.p/7)*12:0)+DIAT_MIDI[q.d];ctx();playTone(midiToHz(midi),.7);
+    if(j===q.d){right++;b.className='right';$('#hint').textContent='Correto!';if(K())guide('Isso! Você está lendo música!','happy');}
+    else{b.className='wrong';el.querySelector(`#ch button[data-j="${q.d}"]`).className='right';$('#hint').textContent=`Era ${DIAT[q.d]}.`;if(K())guide('Quase! Lembre: a 2ª linha é o Sol. Conte a partir dele.','think');}
+    $('#nextq').hidden=false;$('#nextq').textContent=k+1<n?'Próxima →':'Ver resultado';});
+  $('#nextq').onclick=()=>{k++;if(k<n){show();return;}
+    const sc=Math.round(right/n*100);$('#ch').hidden=true;$('#q').innerHTML='';$('#nextq').hidden=true;$('#qc').textContent=`${right} de ${n} certas`;
+    if(opts){opts.onWin(sc);return;}
+    $('#scorebox').innerHTML=scoreHTML(sc,l.id).replace('Nota de afinação','Nota de leitura');saveScore(l.id,sc);
+    if(sc>=pass){markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Você já lê música!':'Leitura aprovada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
+    else{$('#hint').textContent=`Para ganhar a estrela, acerte ${Math.ceil(pass/100*n)} de ${n}.`;$('#after').innerHTML='<button class="btn" id="again">Tentar de novo</button>';$('#again').onclick=()=>go(l.id);}};
+  cleanup=null;
+}
+
+/* ---------- rhythm tapping with a metronome ---------- */
+const RHY=[[1,1,1,1],[2,2],[1,1,2],[.5,.5,1,1,1],[1,.5,.5,2],[1.5,.5,1,1],[2,1,1],[.5,.5,.5,.5,2]];
+const rhyName=d=>d===2?'ta-a':d===1.5?'ta.':d===.5?'ti':'ta';
+function click(when,acc){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1500:1000;g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(.3,when+.005);g.gain.exponentialRampToValueAtTime(.0001,when+.06);o.connect(g).connect(c.destination);o.start(when);o.stop(when+.08);}
+function viewTap(el,l,i,opts){
+  const bpm=K()?66:76,spb=60/bpm,pass=(opts&&opts.pass)||70;
+  const pats=[RHY[0],RHY[2],RHY[1],RHY[3],RHY[4],RHY[5]].slice(0,K()?4:6);
+  let k=0,scores=[],state2='idle',t0=0,taps=[],timers=[];
+  el.innerHTML=`<div class="panel">${opts?'':tipBox(l)}<p class="qcount" id="qc"></p>
+    <div class="rhythm" id="rh"></div><div class="beatdots" id="bd"><i></i><i></i><i></i><i></i></div>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="listen">▶ Ouvir o ritmo</button><button class="btn" id="startr">Começar</button></div>
+    <button class="tapbtn" id="tap" disabled>TA</button><p class="hint" id="hint">Ouça, depois toque em Começar. Conte 4 batidas e toque TA nas notas.</p>
+    <div id="scorebox"></div><div class="row" style="justify-content:center" id="after"></div></div>`;
+  const dots=[...el.querySelectorAll('#bd i')];
+  function show(){const pt=pats[k];$('#qc').textContent=`Ritmo ${k+1} de ${pats.length} · ${bpm} BPM`;
+    $('#rh').innerHTML=pt.map(d=>`<span style="flex:${d}">${rhyName(d)}</span>`).join('');}
+  show();
+  const clearT=()=>{timers.forEach(clearTimeout);timers=[];};
+  function beatsUI(start,count){for(let b=0;b<count;b++)timers.push(setTimeout(()=>{dots.forEach((d,j)=>d.className=j===b%4?'on':'');},Math.max(0,(start+b*spb-ctx().currentTime)*1000)));
+    timers.push(setTimeout(()=>dots.forEach(d=>d.className=''),Math.max(0,(start+count*spb-ctx().currentTime)*1000)));}
+  $('#listen').onclick=()=>{if(state2==='run')return;clearT();const c=ctx(),st=c.currentTime+.2;for(let b=0;b<4;b++)click(st+b*spb,b===0);
+    let at=st+4*spb;pats[k].forEach(d=>{playTone(392,Math.max(.15,d*spb*.8),null,at-c.currentTime);at+=d*spb;});beatsUI(st,8);};
+  $('#startr').onclick=()=>{if(state2==='run')return;clearT();const c=ctx(),st=c.currentTime+.2;state2='run';taps=[];
+    for(let b=0;b<8;b++)click(st+b*spb,b%4===0);t0=st+4*spb;beatsUI(st,8);$('#tap').disabled=false;$('#hint').textContent='1, 2, 3, 4... agora!';
+    el.querySelectorAll('#rh span').forEach(x=>x.className='');
+    timers.push(setTimeout(finishPat,(t0+4*spb+.35-c.currentTime)*1000));};
+  const tapNow=()=>{if(state2!=='run')return;taps.push(ctx().currentTime-t0);const b=$('#tap');b.style.transform='scale(.97)';setTimeout(()=>b.style.transform='',80);};
+  $('#tap').addEventListener('pointerdown',e=>{e.preventDefault();tapNow();});
+  const key=e=>{if(e.code==='Space'&&state2==='run'){e.preventDefault();tapNow();}};document.addEventListener('keydown',key);
+  function finishPat(){state2='idle';$('#tap').disabled=true;
+    const pt=pats[k],on=[];let a=0;pt.forEach(d=>{on.push(a*spb);a+=d;});
+    const used=new Set(),spans=[...el.querySelectorAll('#rh span')];let sum=0;
+    on.forEach((o,j)=>{let best=-1,be=1e9;taps.forEach((t,ti)=>{if(used.has(ti))return;const e2=Math.abs(t-o);if(e2<be){be=e2;best=ti;}});
+      if(best>=0&&be<.3){used.add(best);const acc=Math.max(0,1-Math.max(0,be-.05)/.25);sum+=acc;spans[j].className=acc>.5?'hit':'miss';}else spans[j].className='miss';});
+    const extra=taps.length-used.size,sc=Math.round(100*sum/(on.length+Math.max(0,extra)));scores[k]=sc;
+    $('#hint').textContent=sc>=pass?`Muito bem! ${sc} pontos.`:`${sc} pontos. Tente de novo esse ritmo (precisa de ${pass}).`;
+    if(K())guide(sc>=pass?'Que ritmo! Você é um baterista!':'Escute o tic-tac e tente de novo, bem na batida!',sc>=pass?'happy':'think');
+    if(sc>=pass){k++;if(k<pats.length){$('#after').innerHTML='<button class="btn" id="nextp">Próximo ritmo →</button>';$('#nextp').onclick=()=>{$('#after').innerHTML='';show();};}
+      else{const avg=Math.round(scores.reduce((x,y)=>x+y,0)/scores.length);$('#tap').hidden=true;$('#startr').hidden=true;$('#listen').hidden=true;
+        if(opts){opts.onWin(avg);return;}
+        $('#scorebox').innerHTML=scoreHTML(avg,l.id).replace('Nota de afinação','Nota de ritmo');saveScore(l.id,avg);markDone(l.id);
+        $('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Ritmo de campeão!':'Ritmo aprovado!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,avg);}}}
+  cleanup=()=>{clearT();document.removeEventListener('keydown',key);};
+}
+
 /* ---------- short theory lesson: slides + quiz ---------- */
 function viewTheory(el,l,i){
   const sl=M(l.slides);let k=0;
@@ -1234,6 +1420,8 @@ function viewExam(el,l,i){
     if(p.kind==='ear')viewEar($('#pbody'),sub,i,{onWin:done,pass:need});
     else if(p.kind==='seq')viewSeq($('#pbody'),sub,i,{onWin:done});
     else if(p.kind==='follow'){const ref=L[idx(p.ref)];viewFollow($('#pbody'),{...ref,id:l.id+'_'+part,tip:l.tip},i,{onWin:done});}
+    else if(p.kind==='staff')viewStaff($('#pbody'),sub,i,{onWin:done,pass:need});
+    else if(p.kind==='tap')viewTap($('#pbody'),sub,i,{onWin:done,pass:need});
     if(K()&&p.kind!=='ear')wireGuide();
   }
 }
