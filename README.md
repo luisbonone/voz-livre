@@ -18,6 +18,6 @@ Tudo está em `index.html`, sem dependências nem etapa de build. Para rodar loc
 
 O app usa o [Supabase](https://supabase.com) para as contas dos alunos, o progresso salvo na nuvem e o painel do professor.
 
-1. No Supabase, rode `supabase/schema.sql` em **SQL Editor**.
+1. No Supabase, rode `supabase/schema.sql` e depois `supabase/schema_v2_gravacoes.sql` em **SQL Editor**.
 2. Para tornar uma conta professor, rode: `update public.profiles set role = 'teacher' where email = 'EMAIL_DO_PROFESSOR';`
 3. A URL do projeto e a chave pública (anon) ficam no topo do script em `index.html` (`SUPA_URL` e `SUPA_KEY`).

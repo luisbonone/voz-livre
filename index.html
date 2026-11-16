@@ -187,6 +187,12 @@ body.wide .app{max-width:1040px}
 .reqs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
 .reqs li{display:flex;gap:8px;align-items:center}
 .daily{border:2px solid var(--accent)}
+.rec{border:2px dashed var(--accent)}
+.rec audio,.reclist audio{width:100%}
+.reclist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.reclist li{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.reclist li.pending{border-color:var(--accent);background:var(--band)}
+.reclist small{color:var(--muted)}
 .acct{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:800;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .form{display:flex;flex-direction:column;gap:12px}
 .form label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.92rem}
@@ -621,6 +627,7 @@ function celebrate(i,sc){
 }
 function homeLine(){
   const n=L.filter(l=>state.done[l.id]).length;
+  if(typeof cloud!=='undefined'&&cloud.recs.some(r=>r.reviewed_at&&!seenRecs().includes(r.id)))return 'O seu professor ouviu a sua gravação! Veja o que ele disse aqui embaixo.';
   if(typeof cloud!=='undefined'&&cloud.msgs.some(m=>!m.read_at))return 'Seu professor deixou um recado para você! Leia aqui embaixo.';
   if(n===0&&!state.vt)return 'Oi! Eu sou o Davi, o canarinho. Vou te ensinar a cantar para louvar a Deus! Primeiro, vamos fazer o teste de voz?';
   if(n===0)return 'Já conheço a sua voz! Agora toque na aula 1 para começar.';
@@ -631,7 +638,7 @@ function homeLine(){
 
 /* ---------- cloud: accounts, progress sync, teacher panel ---------- */
 const SUPA_URL='https://wpclntveodqsshotstfo.supabase.co', SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY2xudHZlb2Rxc3Nob3RzdGZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ3ODUwNTIsImV4cCI6MjExMDM2MTA1Mn0.M-IBeBn3LeAQOEAG2uyovqt0xYsC4OIGM_Geq8QbjtQ'; // chave pública (anon), pode ficar no site
-const cloud={sb:null,user:null,profile:null,cls:null,msgs:[]};
+const cloud={sb:null,user:null,profile:null,cls:null,msgs:[],recs:[]};
 try{if(SUPA_URL&&SUPA_KEY&&window.supabase)cloud.sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){}
 function cloudOn(){return !!cloud.sb}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -665,6 +672,7 @@ async function loadCloud(){
     cloud.sb.from('progress').select('*').eq('user_id',uid).maybeSingle(),
     cloud.sb.from('messages').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30)]);
   cloud.profile=p.data||null;mergeProgress(pr.data);cloud.msgs=m.data||[];cloud.cls=null;
+  try{const rr=await cloud.sb.from('recordings').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30);cloud.recs=rr.data||[];}catch(e){cloud.recs=[];}
   if(cloud.profile&&cloud.profile.class_id){const c=await cloud.sb.from('classes').select('id,name').eq('id',cloud.profile.class_id).maybeSingle();cloud.cls=c.data||null;}
   await pushProgress();}
 async function initCloud(){
@@ -673,9 +681,50 @@ async function initCloud(){
   cloud.sb.auth.onAuthStateChange((ev,session)=>{const u=session?session.user:null;
     if((u&&u.id)!==(cloud.user&&cloud.user.id)){cloud.user=u;setTimeout(()=>loadCloud().catch(()=>{}).then(()=>{if(['home','conta'].includes(state.view))render();}),0);}});
   if(['home','conta'].includes(state.view))render();}
+/* ----- student recordings for the teacher ----- */
+const lessonName=id=>{const k=idx(id);return k>=0?M(L[k].title):(id||'Gravação livre');};
+function canRecord(){return cloudOn()&&cloud.user&&cloud.profile&&cloud.profile.role!=='teacher'&&cloud.cls&&typeof MediaRecorder!=='undefined';}
+function recorderHTML(isExam){if(!canRecord())return '';
+  return `<div class="panel rec" id="recbox"><span class="label">🎙️ ${isExam?'Gravação da prova':'Mostre para o professor'}</span>
+    <p class="muted">${isExam?'Grave você cantando o louvor da prova para o professor ouvir e aprovar.':'Grave um trecho cantando este exercício e envie para o seu professor ouvir e comentar.'}</p>
+    <div class="row"><button class="btn" id="recbtn">● Gravar</button><span id="rectime" class="muted"></span></div>
+    <audio id="recaudio" controls hidden></audio>
+    <div class="row" id="recact" hidden><button class="btn" id="recsend">Enviar ao professor</button><button class="btn ghost" id="recagain">Gravar de novo</button></div>
+    <p class="err" id="recerr"></p></div>`;}
+function wireRecorder(lessonId,isExam){
+  const btn=$('#recbtn');if(!btn)return;
+  let mr=null,chunks=[],stream=null,t0=0,iv=null,blob=null,dur=0;const MAX=60;
+  const pickType=()=>['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'].find(t=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t))||'';
+  async function start(){$('#recerr').textContent='';
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}catch(e){$('#recerr').textContent='Não foi possível usar o microfone. Permita o acesso e tente de novo.';return;}
+    const type=pickType();mr=new MediaRecorder(stream,type?{mimeType:type,audioBitsPerSecond:48000}:undefined);chunks=[];
+    mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+    mr.onstop=()=>{stream.getTracks().forEach(t=>t.stop());blob=new Blob(chunks,{type:mr.mimeType||type||'audio/webm'});dur=(performance.now()-t0)/1000;
+      const a=$('#recaudio');if(!a)return;a.src=URL.createObjectURL(blob);a.hidden=false;$('#recact').hidden=false;btn.textContent='● Gravar';btn.disabled=false;$('#rectime').textContent=`${Math.round(dur)}s gravados. Ouça antes de enviar.`;};
+    mr.start(250);t0=performance.now();btn.textContent='■ Parar';$('#recact').hidden=true;
+    iv=setInterval(()=>{const s2=(performance.now()-t0)/1000;$('#rectime').textContent=`Gravando... ${Math.floor(s2)}s de ${MAX}s`;if(s2>=MAX)stop();},250);}
+  function stop(){clearInterval(iv);if(mr&&mr.state==='recording'){btn.disabled=true;mr.stop();}}
+  btn.onclick=()=>{if(mr&&mr.state==='recording')stop();else start();};
+  $('#recagain').onclick=()=>{$('#recaudio').hidden=true;blob=null;start();};
+  $('#recsend').onclick=async()=>{if(!blob)return;const b2=$('#recsend');b2.disabled=true;b2.textContent='Enviando...';
+    const type=(blob.type||'audio/webm').split(';')[0],ext=type.includes('mp4')?'m4a':(type.includes('ogg')?'ogg':'webm');
+    const path=`${cloud.user.id}/${Date.now()}_${lessonId}.${ext}`;
+    const up=await cloud.sb.storage.from('recordings').upload(path,blob,{contentType:type});
+    if(up.error){b2.disabled=false;b2.textContent='Enviar ao professor';$('#recerr').textContent=PT_ERR(up.error.message);return;}
+    const ins=await cloud.sb.from('recordings').insert({student_id:cloud.user.id,lesson_id:lessonId,path,duration_s:Math.round(dur*10)/10,is_exam:!!isExam}).select().single();
+    if(ins.error){b2.disabled=false;b2.textContent='Enviar ao professor';$('#recerr').textContent=PT_ERR(ins.error.message);return;}
+    if(ins.data)cloud.recs.unshift(ins.data);
+    $('#recbox').innerHTML='<p class="okmsg">✓ Gravação enviada! O seu professor vai ouvir e comentar.</p>';if(K())guide('Enviei a sua gravação para o professor!','happy');};
+  const prev=cleanup;cleanup=()=>{clearInterval(iv);if(mr&&mr.state==='recording'){try{mr.stop();}catch(e){}}if(stream)stream.getTracks().forEach(t=>t.stop());if(prev)prev();};
+}
+function seenRecs(){return store.get('recSeen',[]);}
+
 function homeCloudCards(){
   if(!cloudOn())return '';
   let h='';const unread=cloud.msgs.filter(m=>!m.read_at);
+  const fb=cloud.recs.filter(r=>r.reviewed_at&&!seenRecs().includes(r.id));
+  if(fb.length){const r=fb[0];h+=`<section class="msgcard"><span class="label">💬 O professor ouviu a sua gravação</span><p>${esc(lessonName(r.lesson_id))}: ${r.approved?'✅ Aprovada':'🔁 Vamos melhorar'}</p>${r.teacher_comment?`<p style="font-weight:600">"${esc(r.teacher_comment)}"</p>`:''}
+    <div class="row"><button class="btn ghost" id="recseen" data-id="${r.id}">Entendi</button></div></section>`;}
   if(unread.length)h+=`<section class="msgcard"><span class="label">📩 Recado do seu professor${unread.length>1?` (${unread.length})`:''}</span><p>${esc(unread[unread.length-1].body)}</p>
     <div class="row"><button class="btn ghost" id="msgread" data-id="${unread[unread.length-1].id}">Entendi</button></div></section>`;
   if(cloud.profile&&cloud.profile.role==='teacher')h+=`<section class="vcard"><div><span class="label">Professor</span><b>Painel do professor</b><small>Veja o progresso dos seus alunos e mande recados</small></div><button class="btn" id="profgo">Abrir painel</button></section>`;
@@ -684,6 +733,7 @@ function homeCloudCards(){
 function wireHomeCloud(){
   const r=$('#msgread');if(r)r.onclick=async()=>{const id=+r.dataset.id;const m=cloud.msgs.find(x=>x.id===id);if(m)m.read_at=new Date().toISOString();
     render();try{await cloud.sb.from('messages').update({read_at:m.read_at}).eq('id',id);}catch(e){}};
+  const rs=$('#recseen');if(rs)rs.onclick=()=>{store.set('recSeen',[...seenRecs(),+rs.dataset.id]);render();};
   const pg=$('#profgo');if(pg)pg.onclick=()=>go('prof');
   const lg=$('#logingo');if(lg)lg.onclick=()=>go('conta');}
 
@@ -698,6 +748,7 @@ function viewAccount(el){
       (cloud.cls?`<div><span class="label">Sua turma</span><h3>${esc(cloud.cls.name)}</h3><p class="muted">O seu professor acompanha o seu progresso.</p></div>`:
       `<form class="form" id="joinf"><label>Código da turma<input type="text" id="jcode" maxlength="8" autocomplete="off" placeholder="Ex.: K7M2QX" style="text-transform:uppercase"></label>
         <p class="muted" style="font-size:.9rem">Peça o código ao seu professor de canto.</p><p class="err" id="jerr"></p><button class="btn" type="submit">Entrar na turma</button></form>`)}
+      ${p.role!=='teacher'?`<div><span class="label">Minhas gravações</span>${cloud.recs.length?`<ul class="reclist">${cloud.recs.map(r=>`<li><b>${esc(lessonName(r.lesson_id))}${r.is_exam?' · prova':''}</b><small>${new Date(r.created_at).toLocaleDateString('pt-BR')} · ${r.reviewed_at?(r.approved?'✅ Aprovada':'🔁 Precisa melhorar'):'⏳ Aguardando o professor'}</small>${r.teacher_comment?`<span>"${esc(r.teacher_comment)}"</span>`:''}</li>`).join('')}</ul>`:'<p class="muted">Você ainda não enviou gravações. Nas aulas de canto aparece o botão "Gravar" para mostrar ao professor.</p>'}</div>`:''}
       ${p.role!=='teacher'?`<div><span class="label">Recados do professor</span>${msgs.length?`<ul class="msglist">${msgs.map(m=>`<li>${esc(m.body)}<small>${new Date(m.created_at).toLocaleDateString('pt-BR')}</small></li>`).join('')}</ul>`:'<p class="muted">Nenhum recado ainda.</p>'}</div>`:''}
       <div class="row"><button class="btn ghost" id="logout">Sair da conta</button></div></div>`;
     const pg=$('#profgo');if(pg)pg.onclick=()=>go('prof');
@@ -754,7 +805,7 @@ function viewAccount(el){
   draw();
 }
 
-const prof={classes:[],sel:null,students:[],prog:{},msgs:[],detail:null,loaded:false};
+const prof={classes:[],sel:null,students:[],prog:{},msgs:[],recs:[],detail:null,loaded:false};
 function relDay(iso){if(!iso)return 'nunca';const d=Math.floor((Date.now()-new Date(iso).getTime())/864e5);return d<=0?'hoje':d===1?'ontem':`há ${d} dias`;}
 function studentInfo(st){
   const pr=prof.prog[st.id]||{},done=Object.keys(pr.done||{}).filter(k=>pr.done[k]&&idx(k)>=0).length,sc=Object.values(pr.scores||{});
@@ -771,12 +822,13 @@ async function profLoadClasses(){
   const r=await cloud.sb.from('classes').select('*').eq('teacher_id',cloud.user.id).order('created_at');prof.classes=r.data||[];
   if(!prof.sel&&prof.classes.length)prof.sel=prof.classes[0].id;}
 async function profLoadStudents(){
-  prof.students=[];prof.prog={};prof.msgs=[];if(!prof.sel)return;
+  prof.students=[];prof.prog={};prof.msgs=[];prof.recs=[];if(!prof.sel)return;
   const s=await cloud.sb.from('profiles').select('id,full_name,email,is_minor,guardian_name,created_at').eq('class_id',prof.sel).eq('role','student').order('full_name');
   prof.students=s.data||[];const ids=prof.students.map(x=>x.id);if(!ids.length)return;
   const [pr,ms]=await Promise.all([cloud.sb.from('progress').select('*').in('user_id',ids),
     cloud.sb.from('messages').select('*').eq('teacher_id',cloud.user.id).in('student_id',ids).order('created_at',{ascending:false})]);
-  (pr.data||[]).forEach(x=>prof.prog[x.user_id]=x);prof.msgs=ms.data||[];}
+  (pr.data||[]).forEach(x=>prof.prog[x.user_id]=x);prof.msgs=ms.data||[];
+  try{const rr=await cloud.sb.from('recordings').select('*').in('student_id',ids).order('created_at',{ascending:false});prof.recs=rr.data||[];}catch(e){prof.recs=[];}}
 function viewTeacher(el){
   if(!cloudOn()||!cloud.user){el.innerHTML=`<div class="panel"><p>Entre com a sua conta de professor.</p><button class="btn" id="lg">Entrar</button></div>`;$('#lg').onclick=()=>go('conta');return;}
   if(!cloud.profile||cloud.profile.role!=='teacher'){el.innerHTML=`<div class="panel"><p>Esta conta ainda não é de professor.</p></div>`;return;}
@@ -784,7 +836,7 @@ function viewTeacher(el){
     (async()=>{try{await profLoadClasses();await profLoadStudents();prof.loaded=true;}catch(e){prof.loaded=true;}if(state.view==='prof')viewTeacher(el);})();return;}
   const c=prof.classes.find(x=>x.id===prof.sel);
   const rows=prof.students.map(st=>({st,...studentInfo(st)})).sort((a,b)=>a.rank-b.rank||(a.st.full_name||'').localeCompare(b.st.full_name||''));
-  const active=rows.filter(r=>r.days!=null&&r.days<7).length,attention=rows.filter(r=>r.rank<=1).length;
+  const active=rows.filter(r=>r.days!=null&&r.days<7).length,attention=rows.filter(r=>r.rank<=1).length,pendingAll=prof.recs.filter(x=>!x.reviewed_at).length;
   el.innerHTML=`<div class="classchips">${prof.classes.map(x=>`<button data-c="${x.id}" aria-pressed="${x.id===prof.sel}">${esc(x.name)}</button>`).join('')}
       <form id="ncf" class="row"><input type="text" id="ncn" placeholder="Nome da nova turma" maxlength="60" style="font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink)"><button class="btn ghost" type="submit">+ Criar turma</button></form></div>
     ${!c?`<div class="panel"><h3>Crie a sua primeira turma</h3><p class="muted">Dê um nome (por exemplo "Coral Kids" ou "Ministério de louvor") e o app gera um código para os alunos entrarem.</p></div>`:`
@@ -792,10 +844,10 @@ function viewTeacher(el){
       <div class="codebox"><div><span class="label">Código da turma ${esc(c.name)}</span><div class="code" id="ccode">${esc(c.code)}</div></div>
         <button class="btn ghost" id="copy">Copiar código</button><button class="btn ghost" id="reload">↻ Atualizar</button></div>
       <p class="muted">Os alunos tocam em <b>Entrar</b> no app, criam a conta e digitam este código.</p>
-      <div class="statrow"><div class="stat"><b>${rows.length}</b><small>alunos</small></div><div class="stat"><b>${active}</b><small>treinaram nesta semana</small></div><div class="stat"><b>${attention}</b><small>precisam de atenção</small></div></div>
+      <div class="statrow"><div class="stat"><b>${rows.length}</b><small>alunos</small></div><div class="stat"><b>${active}</b><small>treinaram nesta semana</small></div><div class="stat"><b>${attention}</b><small>precisam de atenção</small></div><div class="stat"><b>🎙️ ${pendingAll}</b><small>gravações para ouvir</small></div></div>
     </div>
     ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Nível</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Voz</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${r.st.is_minor?' <small class="muted">(menor)</small>':''}</td>
+      ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${r.st.is_minor?' <small class="muted">(menor)</small>':''}${(n=>n?` <span class="chip warn">🎙️ ${n}</span>`:'')(prof.recs.filter(x=>x.student_id===r.st.id&&!x.reviewed_at).length)}</td>
         <td><span class="chip ${r.cls}">${r.status}</span></td><td>${studentLevel(r.pr.done)} · ${LEVELS[studentLevel(r.pr.done)-1].title}</td>
         <td><span class="minibar"><b style="width:${Math.round(r.done/L.length*100)}%"></b></span>${r.done}/${L.length}</td>
         <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
@@ -821,10 +873,24 @@ function drawDetail(el,r){
     ${tips.length?`<div class="tip"><span>💡</span><p>${tips.map(esc).join(' ')}</p></div>`:''}
     <div class="detail"><div><span class="label">Aulas</span><ul class="lessonlist">${L.map((l,k)=>`<li><span>${k+1}. ${esc(l.title.adult)}</span><span>${dn[l.id]?'✓':''}${sc[l.id]!=null?` ${sc[l.id]}`:''}</span></li>`).join('')}</ul>
       ${pr.vt?`<p><b>Voz:</b> ${esc(pr.vt.cls)}, de ${nmo(pr.vt.low)} até ${nmo(pr.vt.high)}</p>`:''}${pr.last_lesson&&idx(pr.last_lesson)>=0?`<p><b>Última aula aberta:</b> ${esc(L[idx(pr.last_lesson)].title.adult)}</p>`:''}</div>
-    <div><span class="label">Recados</span>
+    <div><span class="label">Gravações</span>
+      ${(recs=>recs.length?`<ul class="reclist">${recs.map(x=>`<li class="${x.reviewed_at?'':'pending'}" data-r="${x.id}"><b>${esc(lessonName(x.lesson_id))}${x.is_exam?' <span class="chip ok">prova</span>':''}</b>
+        <small>${new Date(x.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})}${x.duration_s?` · ${Math.round(x.duration_s)}s`:''} · ${x.reviewed_at?(x.approved?'✅ aprovada':'🔁 pediu para melhorar'):'⏳ nova'}</small>
+        <button class="btn ghost" data-play="${x.id}">▶ Ouvir</button><audio controls hidden></audio>
+        <textarea rows="2" maxlength="1000" placeholder="Comentário para o aluno (opcional)">${esc(x.teacher_comment||'')}</textarea>
+        <div class="row"><button class="btn" data-ok="1">✓ Aprovar</button><button class="btn ghost" data-ok="0">Precisa melhorar</button></div><p class="err"></p></li>`).join('')}</ul>`:'<p class="muted">Nenhuma gravação enviada ainda.</p>')(prof.recs.filter(x=>x.student_id===st.id))}
+      <span class="label" style="margin-top:8px">Recados</span>
       <form class="form" id="mf"><textarea id="mb" rows="3" maxlength="1000" placeholder="Ex.: Muito bem na escala! Esta semana repita a aula Nota longa afinada."></textarea><p class="err" id="merr"></p><button class="btn" type="submit">Enviar recado</button></form>
       ${msgs.length?`<ul class="msglist">${msgs.map(m=>`<li>${esc(m.body)}<small>${new Date(m.created_at).toLocaleDateString('pt-BR')} · ${m.read_at?'lido ✓':'ainda não lido'}</small></li>`).join('')}</ul>`:'<p class="muted">Nenhum recado enviado.</p>'}
     </div></div></div>`;
+  el.querySelectorAll('.reclist li[data-r]').forEach(li=>{const rec=prof.recs.find(x=>x.id===+li.dataset.r);
+    li.querySelector('[data-play]').onclick=async ev=>{const b=ev.currentTarget;b.disabled=true;b.textContent='Carregando...';
+      const {data,error}=await cloud.sb.storage.from('recordings').createSignedUrl(rec.path,3600);
+      if(error||!data){b.disabled=false;b.textContent='▶ Ouvir';li.querySelector('.err').textContent=PT_ERR(error&&error.message);return;}
+      const a=li.querySelector('audio');a.src=data.signedUrl;a.hidden=false;b.hidden=true;a.play().catch(()=>{});};
+    li.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{const upd={teacher_comment:li.querySelector('textarea').value.trim()||null,approved:b.dataset.ok==='1',reviewed_at:new Date().toISOString()};
+      const r3=await cloud.sb.from('recordings').update(upd).eq('id',rec.id);if(r3.error){li.querySelector('.err').textContent=PT_ERR(r3.error.message);return;}
+      Object.assign(rec,upd);viewTeacher(document.querySelector('#body'));});});
   $('#mf').onsubmit=async e=>{e.preventDefault();const body=$('#mb').value.trim();if(!body)return;
     const r2=await cloud.sb.from('messages').insert({teacher_id:cloud.user.id,student_id:st.id,body}).select().single();
     if(r2.error){$('#merr').textContent=PT_ERR(r2.error.message);return;}prof.msgs.unshift(r2.data);drawDetail(el,r);};
@@ -906,6 +972,7 @@ function render(){
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam})[l.type]($('#body'),l,i);
+    if(['seq','follow','sustain','dyn','guided'].includes(l.type)&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
@@ -1158,7 +1225,8 @@ function viewExam(el,l,i){
           const nextLv=LEVELS[lv];
           res.innerHTML=`<div class="win"><span class="big">🏆</span><h3>Aprovado no Nível ${lv}!</h3><p>Nota final: <b>${avg}</b>.</p>
             <p class="muted">${nextLv?(nextLv.soon?`O Nível ${nextLv.n} (${nextLv.title}) está chegando em breve. Continue treinando com o aquecimento do dia e os louvores.`:`O Nível ${nextLv.n} · ${nextLv.title} está liberado!`):''}</p></div>
-            <div class="row" style="justify-content:center">${nextBtn(i)}</div>`;box.appendChild(res);wireNext(i);celebrate(i,avg);}
+            <div class="row" style="justify-content:center">${nextBtn(i)}</div>`;box.appendChild(res);wireNext(i);celebrate(i,avg);
+          if(canRecord()){res.insertAdjacentHTML('afterend',recorderHTML(true));wireRecorder(l.id,true);}}
       } else {res.innerHTML=`<p class="err" style="text-align:center">${p.title}: ${sc} pontos. Precisa de ${need}. Treine mais um pouco e tente de novo!</p><div class="row" style="justify-content:center"><button class="btn" id="rp">Tentar esta parte de novo</button></div>`;
         box.appendChild(res);$('#rp').onclick=()=>{if(cleanup){cleanup();cleanup=null;}runPart();};if(K())guide('Quase! Respire fundo e tente de novo, você consegue!','idle','force');}
       res.scrollIntoView({behavior:'smooth',block:'center'});};
