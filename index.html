@@ -1091,7 +1091,7 @@ function speak(text,force){
   if(!K()||!voiceOn||!('speechSynthesis' in window))return;
   if(mic&&!force)return;
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/[★⬆⬇🎤▶]/g,''));
-    u.lang='pt-BR';u.rate=1.05;const v=pickVoice();if(v)u.voice=v;u.pitch=daviPitch(v);
+    u.lang='pt-BR';u.rate=1.05;const vs=ptVoices(),v=vs.length>1?pickVoice():null;if(v)u.voice=v;u.pitch=v?daviPitch(v):1.1;
     const d=()=>document.querySelector('#guide .davi');
     u.onstart=()=>d()&&d().classList.add('talk');u.onend=u.onerror=()=>d()&&d().classList.remove('talk');
     speechSynthesis.speak(u);}catch(e){}
