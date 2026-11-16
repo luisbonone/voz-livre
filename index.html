@@ -563,7 +563,7 @@ L.push(
   title:{kid:'Voz de coruja',adult:'Voz de cabeça'},
   sub:{kid:'Cantar fininho e leve',adult:'Agudos leves em "u"'},
   tip:{kid:'Faça "uuu" fininho como uma coruja. Bem leve, sem força nenhuma!',adult:'Cante em "u" com pouco volume e a laringe relaxada. Leveza primeiro: a força vem depois, com a voz mista.'}},
- {id:'sovt',type:'guided',sec:30,
+ {id:'sovt',type:'guided',sung:true,sec:30,
   title:{kid:'Canudinho mágico',adult:'Trato vocal semiocluído'},
   sub:{kid:'Cantar com canudo, motinha e "ng"',adult:'Canudo, vibração e "ng" na passagem'},
   tip:{kid:'Pegue um canudinho! Cantar por dentro dele ajuda a voz a subir sem quebrar.',adult:'Estes exercícios criam uma pressão de retorno que equilibra ar e pregas vocais. São os mais usados por fonoaudiólogos para trabalhar a passagem.'},
@@ -642,7 +642,7 @@ L.push(
   quiz:[{q:'O vibrato saudável aparece quando...',o:['A gente treme o queixo','A voz está solta e o ar firme','A gente canta o mais forte possível'],a:1},
         {q:'Quantas oscilações por segundo tem um vibrato natural, mais ou menos?',o:['1 ou 2','5 a 7','15 a 20'],a:1},
         {q:'Uma criança ainda não tem vibrato. Isso é...',o:['Normal, a nota firme também é linda','Um problema sério','Sinal de que canta errado'],a:0}]},
- {id:'vib_prep',type:'guided',sec:25,
+ {id:'vib_prep',type:'guided',sung:true,sec:25,
   title:{kid:'Soltando a voz',adult:'Preparação para o vibrato'},
   sub:{kid:'Ondinhas, risada e voz soltinha',adult:'Liberdade, apoio e oscilação controlada'},
   tip:{kid:'Para a voz balançar, ela precisa estar bem soltinha. Vamos brincar de soltar!',adult:'O vibrato nasce da liberdade. Estes exercícios removem tensões e ensinam o corpo a oscilar sem esforço.'},
@@ -690,7 +690,7 @@ L.push(
   quiz:[{q:'De onde deve vir a força da voz forte?',o:['Do pescoço apertado','Do apoio de ar e da ressonância','De gritar mais alto'],a:1},
         {q:'O que é twang?',o:['Um som brilhante e projetado, como "nhé"','Um tipo de vibrato','Cantar pelo nariz entupido'],a:0},
         {q:'Cantou forte e a garganta arranhou. E agora?',o:['Continuar até passar','Parar, descansar e beber água','Cantar mais forte'],a:1}]},
- {id:'twang',type:'guided',sec:25,
+ {id:'twang',type:'guided',sung:true,sec:25,
   title:{kid:'Voz de chamar',adult:'Twang e voz de chamada'},
   sub:{kid:'Patinho, bruxinha e "Ê, ô!"',adult:'Brilho e projeção sem força'},
   tip:{kid:'Vamos fazer sons engraçados que deixam a voz brilhante sem precisar gritar!',adult:'Estes exercícios constroem brilho e projeção. Faça em volume médio: o twang dá a sensação de força sem exigir força.'},
@@ -1451,7 +1451,7 @@ function render(){
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');if(isTeacher()&&prof.tab==='aulas'){$('#back').textContent='← Voltar ao painel';$('#back').onclick=()=>go('prof');}
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
-    if(['seq','follow','sustain','dyn','guided','vib'].includes(l.type)&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
+    if((['seq','follow','sustain','dyn','vib'].includes(l.type)||(l.type==='guided'&&l.sung))&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
