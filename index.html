@@ -428,7 +428,7 @@ const LEVELS=[
   {n:1,title:'Iniciante',sub:{kid:'Conhecendo a sua voz',adult:'Postura, respiração, saúde vocal e a primeira nota afinada'}},
   {n:2,title:'Básico',sub:{kid:'Escalas, ouvido e os primeiros louvores',adult:'Escalas, intervalos, vogais, apoio e os primeiros hinos'}},
   {n:3,title:'Intermediário',sub:{kid:'Voz de peito, voz de cabeça, ritmo e leitura',adult:'Registros, passagem, extensão, ritmo e leitura de cifra e partitura'}},
-  {n:4,title:'Avançado',soon:true,topics:['Vibrato natural','Agilidade e melismas','Voz forte com saúde (belting)','Dinâmica e interpretação','Repertório de hinos mais difíceis']},
+  {n:4,title:'Avançado',sub:{kid:'Voz que balança, voz ligeira, voz forte e cantar com o coração',adult:'Vibrato, agilidade e melismas, voz forte com saúde e interpretação'}},
   {n:5,title:'Ministério',soon:true,topics:['Cantar em grupo','Segunda e terceira vozes (harmonia)','Cantar com a banda','Técnica de microfone','Presença no altar e ministração','Preparar um louvor completo']}
 ];
 UNITS.length=0;UNITS.push(
@@ -440,7 +440,11 @@ UNITS.length=0;UNITS.push(
   {id:'n3a',level:3,title:{kid:'Voz de peito e voz de cabeça',adult:'Registros e passagem'}},
   {id:'n3b',level:3,title:{kid:'Voz mais longe',adult:'Extensão'}},
   {id:'n3c',level:3,title:{kid:'Ritmo e leitura',adult:'Ritmo, cifra e partitura'}},
-  {id:'n3d',level:3,title:{kid:'Louvor do nível 3',adult:'Repertório'}});
+  {id:'n3d',level:3,title:{kid:'Louvor do nível 3',adult:'Repertório'}},
+  {id:'n4a',level:4,title:{kid:'A voz que balança',adult:'Vibrato'}},
+  {id:'n4b',level:4,title:{kid:'Voz ligeirinha',adult:'Agilidade e melismas'}},
+  {id:'n4c',level:4,title:{kid:'Voz forte sem gritar',adult:'Voz forte com saúde'}},
+  {id:'n4d',level:4,title:{kid:'Cantar com o coração',adult:'Interpretação e repertório'}});
 L.push(
  {id:'posture',type:'guided',sec:20,
   title:{kid:'Corpo de cantor',adult:'Postura para cantar'},
@@ -589,6 +593,114 @@ L.push(
   tip:{kid:'Você já é um cantor de nível 3! Mostre a leitura, o ritmo e o louvor.',adult:'Prova do Intermediário: leitura de notas, precisão rítmica e o hino completo no tempo.'},
   parts:[{kind:'staff',n:8,pass:75,title:'Parte 1: leitura'},{kind:'tap',pass:{kid:60,adult:70},title:'Parte 2: ritmo'},{kind:'follow',ref:'follow5',pass:{kid:50,adult:60},title:'Parte 3: louvor'}]}
 );
+
+const GLO=[7,4,5,7,5,4, 2,4,5,4,2,0, 2,4,2,0,-1,-3, -5];
+const GLO_B=[.5,.5,.5,.5,.5,.5, .5,.5,.5,.5,.5,.5, .5,.5,.5,.5,.5,.5, 2];
+const GLO_L=['Gló-'].concat(Array(17).fill('o-'),['o...']);
+const GLO_CREDIT='Melodia do refrão "Gloria", canção natalina tradicional francesa "Les Anges dans nos campagnes" (séc. XVIII, domínio público), conhecida como "Angels We Have Heard on High". Aqui só o melisma da palavra "Glória".';
+L.push(
+ {id:'theory_vib',type:'theory',
+  title:{kid:'A voz que balança',adult:'Teoria: vibrato'},
+  sub:{kid:'Um balancinho natural na voz',adult:'O que é, de onde vem e como não forçar'},
+  tip:{kid:'Já reparou que a voz de alguns cantores "balança" bem de leve numa nota comprida? Isso se chama vibrato!',adult:'O vibrato é uma consequência de técnica livre, não um enfeite que se fabrica. Entender isso evita os vícios mais comuns.'},
+  slides:{kid:[['O que é vibrato','É um balancinho bem pequeno na nota, para cima e para baixo, umas 5 ou 6 vezes por segundo. Parece uma onda no mar.'],['Ele vem sozinho','O vibrato aparece quando a voz está solta e o ar está firme. Não precisa tremer a barriga nem o queixo!'],['Criança tem tempo','Muitas crianças ainda não têm vibrato, e está tudo bem. Uma nota firme e afinada é linda do mesmo jeito.']],
+          adult:[['Definição','Vibrato é uma oscilação regular da altura (e um pouco da intensidade) em torno da nota: cerca de 5 a 7 ciclos por segundo, com amplitude de aproximadamente meio tom para cima e para baixo.'],['De onde vem','Surge do equilíbrio entre pressão de ar, pregas vocais e uma laringe livre. Quando há tensão, a voz fica "reta" e dura; quando há equilíbrio, o vibrato aparece sozinho.'],['Vícios comuns','Vibrato de queixo, de língua ou de barriga (tremolo forçado), vibrato largo demais ("balido") ou rápido demais (trêmulo nervoso). Todos vêm de tentar fabricar o vibrato.'],['No louvor','Use voz reta no início das notas longas e deixe o vibrato florescer no final. Na congregação, vibrato discreto ajuda as vozes a se misturarem.']]},
+  quiz:[{q:'O vibrato saudável aparece quando...',o:['A gente treme o queixo','A voz está solta e o ar firme','A gente canta o mais forte possível'],a:1},
+        {q:'Quantas oscilações por segundo tem um vibrato natural, mais ou menos?',o:['1 ou 2','5 a 7','15 a 20'],a:1},
+        {q:'Uma criança ainda não tem vibrato. Isso é...',o:['Normal, a nota firme também é linda','Um problema sério','Sinal de que canta errado'],a:0}]},
+ {id:'vib_prep',type:'guided',sec:25,
+  title:{kid:'Soltando a voz',adult:'Preparação para o vibrato'},
+  sub:{kid:'Ondinhas, risada e voz soltinha',adult:'Liberdade, apoio e oscilação controlada'},
+  tip:{kid:'Para a voz balançar, ela precisa estar bem soltinha. Vamos brincar de soltar!',adult:'O vibrato nasce da liberdade. Estes exercícios removem tensões e ensinam o corpo a oscilar sem esforço.'},
+  items:{kid:[['Boneco de pano','Balance os braços e os ombros bem molinhos, como um boneco de pano.'],['Motinha','Faça "brrr" numa nota só, comprido e tranquilo.'],['Ondinha','Cante "uuu" e faça a voz subir e descer bem devagar, como uma onda.'],['Nota firme','Agora cante "ôôô" numa nota firme, sem empurrar nada.']],
+         adult:[['Soltar mandíbula e língua','Mandíbula solta, língua apoiada nos dentes de baixo. Fale "iá-iá-iá" sem mexer a cabeça.'],['Pulsos de apoio','Numa nota confortável, "u-u-u-u" com pequenos pulsos abdominais regulares, sem cortar o som.'],['Oscilação lenta','Alterne duas notas a meio tom de distância, devagar, e acelere aos poucos sem tensionar a garganta.'],['Nota longa livre','Sustente "a" numa nota média com apoio constante e deixe a voz livre. Se aparecer um balanço, não segure, não fabrique: observe.']]}},
+ {id:'vib_osc',type:'follow',steps:[0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],beats:[1,1,1,1,.5,.5,.5,.5,.5,.5,.5,.5,.4,.4,.4,.4,2],pass:{kid:40,adult:50},
+  title:{kid:'Ondinha na voz',adult:'Oscilação de meio tom'},
+  sub:{kid:'Duas notas vizinhas, cada vez mais rápido',adult:'Trilo lento que acelera'},
+  tip:{kid:'Cante "uuu" pulando entre duas notas bem vizinhas. Começa devagar e vai ficando ligeirinho, sem apertar!',adult:'Alterne a nota e o meio tom acima, ligado, em "u". Comece lento e acelere. A garganta fica passiva: quem move a nota é o equilíbrio de ar e pregas, não o queixo.'}},
+ {id:'vibrato',type:'vib',step:4,goal:{kid:3,adult:3},
+  title:{kid:'Nota firme ou balançando',adult:'Vibrato natural'},
+  sub:{kid:'O app vê se a voz balança',adult:'O app mede a velocidade e a largura do seu vibrato'},
+  tip:{kid:'Cante "ôôô" numa nota comprida e tranquila. Se a voz balançar sozinha, o Davi vai ver! Se ficar firme e afinada, também ganha a estrela.',adult:'Sustente "a" na nota alvo, com apoio, e deixe o vibrato aparecer. O ideal fica entre 4,5 e 7 oscilações por segundo, com largura de 20 a 80 cents. Uma nota reta e afinada também avança, com metade da velocidade. Não force: o vibrato vem com o tempo.'}},
+ {id:'theory_agil',type:'theory',
+  title:{kid:'Voz ligeirinha',adult:'Teoria: agilidade e melismas'},
+  sub:{kid:'Muitas notas numa sílaba só',adult:'Precisão primeiro, velocidade depois'},
+  tip:{kid:'Às vezes a gente canta várias notas numa sílaba só, como no "Glóooooria"! Isso se chama melisma.',adult:'Agilidade é a capacidade de mudar de nota com rapidez e precisão. É o que permite cantar melismas limpos.'},
+  slides:{kid:[['Melisma','É quando uma sílaba ganha várias notas. No Natal a gente canta "Glóooooria" bem comprido e cheio de notas!'],['Devagar primeiro','Para ficar ligeirinho, primeiro a gente canta devagar e certinho. Depois vai acelerando.'],['Voz levinha','Voz pesada não corre. Cante levinho, como uma bolinha pulando.']],
+          adult:[['Agilidade','Mudar de nota rápido e com precisão, sem "escorregar". Exige coordenação fina entre ouvido, ar e pregas vocais.'],['Melisma','Várias notas cantadas numa só sílaba. Aparece no "Gloria" natalino e em muitos "aleluias".'],['Como treinar','Lento e exato primeiro, depois aumente a velocidade. Voz leve, vogal estável (geralmente "a" ou "u") e fluxo de ar contínuo: as notas mudam, o ar não para.'],['Erros comuns','Aspirar cada nota ("ha-ha-ha") quando a frase pede legato, perder a afinação nas notas de passagem e acelerar antes de dominar o padrão.']]},
+  quiz:[{q:'O que é um melisma?',o:['Uma nota muito longa','Várias notas numa só sílaba','Cantar sem letra'],a:1},
+        {q:'Como treinar agilidade?',o:['Bem rápido desde o início','Devagar e exato, depois acelerar','Com voz pesada e forte'],a:1},
+        {q:'Durante um melisma, o fluxo de ar deve...',o:['Parar em cada nota','Continuar sem interrupção','Ficar cada vez mais fraco'],a:1}]},
+ {id:'agil1',type:'follow',steps:[0,2,4,2,0, 0,2,4,2,0, 0,2,4,5,7,5,4,2,0],beats:[.5,.5,.5,.5,1, .5,.5,.5,.5,1, .5,.5,.5,.5,.5,.5,.5,.5,2],pass:{kid:40,adult:50},
+  title:{kid:'Bolinha pulando',adult:'Agilidade: 1-2-3-2-1'},
+  sub:{kid:'Notas rapidinhas sem tropeçar',adult:'Padrões de 3 e 5 notas em colcheias'},
+  tip:{kid:'Cante "lá-lá-lá" bem levinho, como uma bolinha quicando. Ouça primeiro e depois cante junto!',adult:'Em "a", ligado e leve. Cada nota limpa, sem deslizar entre elas. Se a nota cair, ouça de novo antes de repetir.'}},
+ {id:'agil2',type:'follow',steps:[0,2,4,5,7,5,4,2,0, 0,2,4,5,7,9,11,12,11,9,7,5,4,2,0],beats:[.5,.5,.5,.5,.5,.5,.5,.5,1, .5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,.5,2],pass:{kid:40,adult:50},
+  title:{kid:'Escorregador',adult:'Agilidade: escalas rápidas'},
+  sub:{kid:'Sobe e desce a escada correndo',adult:'Cinco notas e a oitava inteira'},
+  tip:{kid:'Agora a escada inteira, subindo e descendo depressa! Fica mais levinho lá no alto.',adult:'Escala de cinco notas e depois de oitava, em colcheias. Diminua o peso no agudo e mantenha o ar contínuo na descida.'}},
+ {id:'agil3',type:'follow',steps:[0,4,7,4,0, 0,4,7,12,7,4,0, 2,5,9,5,2, 0,4,7,12,7,4,0],beats:[.5,.5,.5,.5,1, .5,.5,.5,.5,.5,.5,1, .5,.5,.5,.5,1, .5,.5,.5,.5,.5,.5,2],pass:{kid:40,adult:50},
+  title:{kid:'Pulos ligeiros',adult:'Agilidade: arpejos'},
+  sub:{kid:'Pulinhos rápidos e certinhos',adult:'Arpejos maiores e menores em movimento'},
+  tip:{kid:'Os pulinhos agora são maiores! Pense na nota antes de pular.',adult:'Arpejos 1-3-5 e 1-3-5-8, com um arpejo menor no meio (Ré menor). Escute a diferença de cor entre maior e menor.'}},
+ {id:'glo1',type:'seq',steps:GLO,lyrics:GLO_L,hold:{kid:.35,adult:.4},credit:GLO_CREDIT,
+  title:{kid:'Glória! Nota por nota',adult:'Melisma do "Glória", nota por nota'},
+  sub:{kid:'O "Glóooooria" bem devagar',adult:'19 notas numa sílaba, no seu ritmo'},
+  tip:{kid:'Esse é o famoso "Glória" do Natal! Primeiro bem devagar, uma nota de cada vez, sempre no "ó".',adult:'Três grupos de seis notas que descem em sequência, mais a nota final. Mantenha a vogal "ó" igual em todas as notas e não aspire entre elas.'}},
+ {id:'theory_belt',type:'theory',
+  title:{kid:'Voz forte sem gritar',adult:'Teoria: voz forte com saúde'},
+  sub:{kid:'Voz de chamar, não de gritar',adult:'O que é belting e como fazer sem se machucar'},
+  tip:{kid:'Às vezes o louvor pede uma voz bem forte e alegre. Mas forte não é grito!',adult:'Belting é a voz forte e brilhante dos louvores mais intensos. Feita com técnica, é saudável; feita na força, machuca.'},
+  slides:{kid:[['Voz de chamar','É a voz alegre de chamar um amigo do outro lado do parquinho: "Ê, Pedro!". Ela é forte, mas não arranha.'],['O segredo é o ar','A força vem da barriga e do ar, não do pescoço. O pescoço fica molinho.'],['Sinal vermelho','Se arranhar, doer ou ficar rouco, pare na hora e beba água. Voz forte nunca pode doer.']],
+          adult:[['O que é belting','Voz forte e brilhante na região média-aguda, com predominância do registro de peito equilibrado (voz mista "de peito"). É a voz de chamar alguém à distância, não a de gritar.'],['Ingredientes','Apoio firme, laringe estável (sem subir junto com a nota), vogais mais abertas ("é", "a"), ressonância para a frente (twang) e boca bem aberta.'],['Twang','Estreitamento na região acima das pregas vocais que deixa o som brilhante e projetado sem exigir mais força. Lembra o som de "nhé" ou de uma risada de bruxa.'],['Limites','Comece com notas médias, frases curtas e pouco tempo por dia. Aqueça antes. Rouquidão, dor ou cansaço são sinais para parar. Não é para todo louvor: use quando a música pede.']]},
+  quiz:[{q:'De onde deve vir a força da voz forte?',o:['Do pescoço apertado','Do apoio de ar e da ressonância','De gritar mais alto'],a:1},
+        {q:'O que é twang?',o:['Um som brilhante e projetado, como "nhé"','Um tipo de vibrato','Cantar pelo nariz entupido'],a:0},
+        {q:'Cantou forte e a garganta arranhou. E agora?',o:['Continuar até passar','Parar, descansar e beber água','Cantar mais forte'],a:1}]},
+ {id:'twang',type:'guided',sec:25,
+  title:{kid:'Voz de chamar',adult:'Twang e voz de chamada'},
+  sub:{kid:'Patinho, bruxinha e "Ê, ô!"',adult:'Brilho e projeção sem força'},
+  tip:{kid:'Vamos fazer sons engraçados que deixam a voz brilhante sem precisar gritar!',adult:'Estes exercícios constroem brilho e projeção. Faça em volume médio: o twang dá a sensação de força sem exigir força.'},
+  items:{kid:[['Patinho','Fale "quén, quén" como um patinho, bem engraçado.'],['Bruxinha','Dê uma risada de bruxa: "nhé-hé-hé!", fininha e brilhante.'],['Ê, ô!','Chame "Ê, ô!" como quem chama um amigo de longe, alegre e sem arranhar.'],['Aleluia!','Fale "Aleluia!" com alegria, como se estivesse contando uma boa notícia.']],
+         adult:[['"Nhé" brilhante','"Nhé-nhé-nhé" num tom médio, som estreito e brilhante. Sinta a vibração atrás do nariz e nos dentes da frente.'],['Risada de bruxa','Risada aguda "hi-hi-hi" e "nhé-hé-hé". Mantenha a garganta aberta: o brilho vem do estreitamento acima das pregas, não de apertar o pescoço.'],['Chamada "Ê, ô!"','Chame "Ê, ô!" como se chamasse alguém do outro lado da rua, em fala. Depois cante a mesma chamada em duas notas.'],['"Aleluia" falado e cantado','Fale "Aleluia!" com energia e apoio, depois cante em uma nota média com o mesmo brilho. Pare se sentir esforço na garganta.']]}},
+ {id:'belt',type:'dyn',
+  plan:{kid:[{k:'normal',t:'Voz de conversa',d:'Cante "ê" do jeito de sempre.'},{k:'loud',t:'Voz de chamar',d:'Agora "Ê!" alegre, como quem chama um amigo. Sem arranhar!'},{k:'soft',t:'Voz calminha',d:'Agora bem tranquila de novo.'},{k:'loud',t:'Aleluia!',d:'Cante "Aleluia!" forte e alegre, com o ar da barriga.'}],
+        adult:[{k:'normal',t:'Calibrar',d:'Sustente "ê" em volume de conversa. Isso calibra o microfone.'},{k:'loud',t:'Chamada',d:'"Ê!" com twang e apoio, como uma chamada à distância. Laringe estável, sem esforço no pescoço.'},{k:'soft',t:'Voltar ao suave',d:'Mesma nota, suave, sem perder o brilho.'},{k:'loud',t:'"Aleluia" forte',d:'"Aleluia" com voz forte e brilhante, boca aberta e apoio firme.'}]},
+  win:{kid:'Voz forte e saudável!',adult:'Voz forte com controle!'},
+  title:{kid:'Forte e alegre',adult:'Voz forte com controle'},
+  sub:{kid:'Chamar sem gritar',adult:'Alternar força e suavidade com saúde'},
+  tip:{kid:'Use a voz de chamar que você treinou. Forte e alegre, mas o pescoço fica molinho!',adult:'Aplique o twang e o apoio: suba o volume sem tensionar o pescoço e volte ao suave sem perder a qualidade. Se sentir esforço, pare.'}},
+ {id:'theory_interp',type:'theory',
+  title:{kid:'Cantar com o coração',adult:'Teoria: interpretação'},
+  sub:{kid:'Entender o que a gente canta',adult:'Texto, fraseado, dinâmica e adoração'},
+  tip:{kid:'Cantar bonito não é só acertar as notas. É cantar sentindo cada palavra para Deus!',adult:'Interpretar é transmitir o sentido do texto. No louvor, a interpretação serve à mensagem e à adoração, nunca à exibição.'},
+  slides:{kid:[['Entenda a letra','Antes de cantar, leia a letra devagar. O que ela fala de Deus? Fala de alegria, de paz, de gratidão?'],['A palavra importante','Em cada frase tem uma palavra mais importante. Cante ela com mais carinho.'],['Forte e fraquinho','Partes alegres podem ser mais fortes. Partes de oração, mais suaves. A música fica viva!'],['Para quem cantamos','No louvor, a gente canta para Deus. Ele olha o coração, não só a voz.']],
+          adult:[['O texto primeiro','Leia a letra como um texto falado. Qual é a mensagem? Quem fala com quem? Cante como quem diz algo verdadeiro.'],['Fraseado','Pense em frases, não em notas. Cada frase tem um ponto alto (uma palavra ou sílaba importante) e um repouso. Respire nos fins de frase, não no meio das palavras.'],['Dinâmica','Use contrastes: uma estrofe mais íntima, um refrão mais aberto. Crescendos e diminuendos dão forma à música.'],['Adoração','No ministério, a interpretação conduz a congregação. Excesso de ornamentos distrai; verdade e simplicidade edificam.']]},
+  quiz:[{q:'Onde respirar numa frase?',o:['No meio das palavras','Nos fins de frase','Em qualquer lugar'],a:1},
+        {q:'O que vem primeiro na interpretação?',o:['Os ornamentos','O sentido do texto','O volume máximo'],a:1},
+        {q:'No louvor, a interpretação serve para...',o:['Mostrar a técnica do cantor','Servir à mensagem e à adoração','Cantar diferente da banda'],a:1}]},
+ {id:'messa',type:'dyn',
+  plan:{kid:[{k:'normal',t:'Normal',d:'Cante "uuu" do jeito de sempre.'},{k:'soft',t:'Começa baixinho',d:'Comece bem baixinho, como um segredo.'},{k:'loud',t:'Cresce',d:'Agora deixe a voz crescer, cada vez mais forte.'},{k:'soft',t:'Volta baixinho',d:'E volta baixinho, sem parar o som.'}],
+        adult:[{k:'normal',t:'Calibrar',d:'Sustente "a" em volume médio para calibrar.'},{k:'soft',t:'Pianíssimo',d:'Comece a nota suave, com o ar ativo.'},{k:'loud',t:'Crescendo',d:'Cresça até o forte sem mudar a nota nem a vogal.'},{k:'soft',t:'Diminuendo',d:'Volte ao suave sem desafinar e sem perder o apoio.'}]},
+  win:{kid:'A voz cresceu e voltou!',adult:'Messa di voce completa!'},
+  title:{kid:'Voz que cresce',adult:'Messa di voce'},
+  sub:{kid:'Baixinho, forte e baixinho de novo',adult:'Crescendo e diminuendo numa nota'},
+  tip:{kid:'Imagine um sol nascendo: a voz começa pequenininha, cresce e depois se põe devagar.',adult:'Messa di voce é o exercício clássico de controle: suave, crescendo, forte, diminuendo, tudo numa nota e numa vogal. É a base da dinâmica expressiva.'}},
+ {id:'interp',type:'guided',sec:40,
+  title:{kid:'Preparando o louvor',adult:'Preparar a interpretação de um hino'},
+  sub:{kid:'Com "Preciosa Graça"',adult:'Aplicado a "Preciosa Graça"'},
+  tip:{kid:'Vamos preparar o louvor "Preciosa Graça" como um cantor de verdade, sentindo cada palavra!',adult:'Um roteiro de estudo que você pode usar com qualquer hino. Faça agora com "Preciosa Graça", que você já conhece.'},
+  items:{kid:[['Leia a letra','Leia a letra em voz alta, devagar. Ela fala da graça de Deus que nos salvou!'],['Palavra importante','Escolha a palavra mais bonita de cada frase, como "graça" ou "salvou".'],['Onde respirar','Respire no fim de cada frase, nunca no meio de uma palavra.'],['Cante com carinho','Cante tudo pensando em Deus, mais suave no começo e mais forte no final.']],
+         adult:[['Ler como oração','Leia o texto em voz alta como uma oração. Identifique a mensagem: a graça que alcança o perdido.'],['Mapa de respiração','Marque as respirações nos fins de frase. Cada frase em um fôlego, sem quebrar palavras.'],['Pontos altos','Em cada frase, escolha a palavra principal e conduza a frase até ela (crescendo leve) e depois repouse.'],['Plano de dinâmica','Primeira estrofe íntima e suave; a seguinte mais aberta. Cante a primeira estrofe completa aplicando o plano.']]}},
+ {id:'glo2',type:'follow',steps:GLO,beats:GLO_B,lyrics:GLO_L,tempo:1.2,pass:{kid:40,adult:50},credit:GLO_CREDIT,
+  title:{kid:'Siga o Glória',adult:'Melisma do "Glória" no ritmo'},
+  sub:{kid:'O "Glóooooria" inteiro, no ritmo',adult:'O melisma completo, no tempo'},
+  tip:{kid:'Agora o "Glória" inteirinho, no ritmo, sem parar! Respire antes de começar e cante tudo no "ó".',adult:'O melisma completo em colcheias, num fôlego só. Respire bem antes, mantenha a vogal e deixe a voz leve para as notas correrem.'}},
+ {id:'exam4',type:'exam',
+  title:{kid:'Prova do Nível 4',adult:'Prova do Nível 4'},
+  sub:{kid:'Voz ligeira, Glória e nota firme',adult:'Agilidade, melisma e vibrato'},
+  tip:{kid:'Você chegou ao nível avançado! Mostre a voz ligeirinha, o Glória e uma nota bem cantada.',adult:'Prova do Avançado: escalas rápidas, o melisma do "Glória" no tempo e uma nota longa com vibrato natural.'},
+  parts:[{kind:'follow',ref:'agil2',pass:{kid:40,adult:50},title:'Parte 1: agilidade'},{kind:'follow',ref:'glo2',pass:{kid:40,adult:50},title:'Parte 2: melisma'},{kind:'vib',ref:'vibrato',pass:{kid:50,adult:45},title:'Parte 3: nota longa'}]}
+);
 const ORDER={posture:'n1a',breath:'n1a',health:'n1a',warm:'n1a', ear_hl:'n1b',first:'n1b',sustain:'n1b',voicehow:'n1b',exam1:'n1b',
   vowels:'n2a',scale3:'n2a',scale5:'n2a',theory_scale:'n2a',updown:'n2a',ear_int:'n2a',leaps:'n2a',long:'n2a',follow1:'n2a',
   support:'n2b',diction:'n2b',dyn:'n2b',
@@ -596,12 +708,16 @@ const ORDER={posture:'n1a',breath:'n1a',health:'n1a',warm:'n1a', ear_hl:'n1b',fi
   theory_reg:'n3a',chest:'n3a',head:'n3a',sovt:'n3a',passage:'n3a',
   range_up:'n3b',range_low:'n3b',octave:'n3b',
   theory_rhythm:'n3c',tap1:'n3c',theory_read:'n3c',staff1:'n3c',
-  song4:'n3d',follow5:'n3d',exam3:'n3d'};
+  song4:'n3d',follow5:'n3d',exam3:'n3d',
+  theory_vib:'n4a',vib_prep:'n4a',vib_osc:'n4a',vibrato:'n4a',
+  theory_agil:'n4b',agil1:'n4b',agil2:'n4b',agil3:'n4b',glo1:'n4b',
+  theory_belt:'n4c',twang:'n4c',belt:'n4c',
+  theory_interp:'n4d',messa:'n4d',interp:'n4d',glo2:'n4d',exam4:'n4d'};
 const ORD_KEYS=Object.keys(ORDER);
 L.forEach(l=>l.unit=ORDER[l.id]);
 L.sort((a,b)=>ORD_KEYS.indexOf(a.id)-ORD_KEYS.indexOf(b.id));
 const levelOf=l=>(UNITS.find(u=>u.id===l.unit)||{}).level;
-function studentLevel(done){return done&&done.exam3?4:(done&&done.exam2?3:(done&&done.exam1?2:1));}
+function studentLevel(done){return done&&done.exam4?5:done&&done.exam3?4:(done&&done.exam2?3:(done&&done.exam1?2:1));}
 const idx=id=>L.findIndex(l=>l.id===id);
 const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id];
 
@@ -1074,8 +1190,8 @@ function render(){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
-    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap})[l.type]($('#body'),l,i);
-    if(['seq','follow','sustain','dyn','guided'].includes(l.type)&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
+    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
+    if(['seq','follow','sustain','dyn','guided','vib'].includes(l.type)&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
@@ -1422,8 +1538,76 @@ function viewExam(el,l,i){
     else if(p.kind==='follow'){const ref=L[idx(p.ref)];viewFollow($('#pbody'),{...ref,id:l.id+'_'+part,tip:l.tip},i,{onWin:done});}
     else if(p.kind==='staff')viewStaff($('#pbody'),sub,i,{onWin:done,pass:need});
     else if(p.kind==='tap')viewTap($('#pbody'),sub,i,{onWin:done,pass:need});
+    else if(p.kind==='vib'){const ref=L[idx(p.ref)];viewVib($('#pbody'),{...ref,id:l.id+'_'+part,tip:l.tip},i,{onWin:done});}
     if(K()&&p.kind!=='ear')wireGuide();
   }
+}
+
+
+/* ---------- vibrato: sustain a note; measure oscillation rate and width ---------- */
+function viewVib(el,l,i,opts){
+  const target=baseNote(l)+(l.step||0),goal=M(l.goal)||3,tol=K()?60:50,WIN=1.2;
+  el.innerHTML=`<div class="panel">${tipBox(l)}
+    <div class="target"><span class="note">${nm(target)}</span><small>${Math.round(midiToHz(target))} Hz · ${K()?'"ôôô" comprido':'sustente "a"'}</small></div>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="play">▶ Ouvir a nota</button><button class="btn" id="mic">🎤 Cantar</button></div>
+    <canvas id="cv" aria-label="Gráfico da sua voz: o vibrato aparece como uma onda"></canvas>
+    <div class="statrow"><div class="stat"><small>${K()?'Balanços por segundo':'Velocidade'}</small><b id="vr">–</b></div><div class="stat"><small>${K()?'Tamanho do balanço':'Largura'}</small><b id="ve">–</b></div><div class="stat"><small>${K()?'Afinação':'Centro'}</small><b id="vc">–</b></div></div>
+    <p class="hint" id="hint">Escute a nota e toque em Cantar</p>
+    <div class="progress"><b id="pg"></b></div>
+    <div id="scorebox"></div>
+    ${demoBox('Arraste para simular a afinação. <label style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="simvib" checked> simular vibrato</label>')}
+    <div class="row" style="justify-content:center" id="after"></div></div>`;
+  const cv=$('#cv'),g=cv.getContext('2d'),hint=$('#hint');
+  let raf=null,listening=false,demo=false,won=false,last=performance.now(),hist=[],trail=[],okT=0,voiced=0,muteUntil=0,moodT=0;
+  $('#play').onclick=()=>{playTone(midiToHz(target),1.6);muteUntil=performance.now()+1750;};
+  $('#mic').onclick=async()=>{ctx();if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';return;}
+    if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
+  function analyse(){
+    const t1=hist[hist.length-1].t,w=hist.filter(p=>p.t>=t1-WIN);
+    if(w.length<20||w[w.length-1].t-w[0].t<WIN*.85)return null;
+    const n=w.length,mt=w.reduce((a,p)=>a+p.t,0)/n,mc=w.reduce((a,p)=>a+p.c,0)/n;
+    let sxy=0,sxx=0;w.forEach(p=>{sxy+=(p.t-mt)*(p.c-mc);sxx+=(p.t-mt)**2;});const k=sxx?sxy/sxx:0;
+    const d=w.map(p=>p.c-mc-k*(p.t-mt)),sd=Math.sqrt(d.reduce((a,x)=>a+x*x,0)/n);
+    const h=Math.max(4,sd*.5);let st=0,cr=0;d.forEach(x=>{if(x>h){if(st<0)cr++;st=1;}else if(x<-h){if(st>0)cr++;st=-1;}});
+    return {rate:cr/2/(w[n-1].t-w[0].t),ext:sd*Math.SQRT2,mean:mc};
+  }
+  function draw(){
+    const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+    if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+    g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);const y=c=>h/2-c/150*(h/2-14);
+    g.fillStyle=css('--band');g.fillRect(0,y(tol),w,y(-tol)-y(tol));
+    g.strokeStyle=css('--line');g.lineWidth=1;[-100,0,100].forEach(c=>{g.beginPath();g.moveTo(0,y(c));g.lineTo(w,y(c));g.stroke();});
+    g.fillStyle=css('--muted');g.font='12px Nunito,sans-serif';g.fillText('+100 cents',8,y(100)-4);g.fillText('−100',8,y(-100)+14);
+    g.strokeStyle=css('--accent');g.lineWidth=2.5;g.lineJoin='round';g.beginPath();let pen=false;const now=trail.length?trail[trail.length-1].t:0,span=3;
+    trail.forEach(p=>{if(p.c==null){pen=false;return;}const X=w-(now-p.t)/span*w,Y=y(Math.max(-150,Math.min(150,p.c)));pen?g.lineTo(X,Y):g.moveTo(X,Y);pen=true;});g.stroke();
+  }
+  const fmt=x=>x.toFixed(1).replace('.',',');
+  function loop(){raf=requestAnimationFrame(loop);const pn=performance.now(),dt=Math.min(.1,(pn-last)/1000),t=pn/1000;last=pn;
+    let f=null;
+    if(listening&&pn>muteUntil){
+      if(demo){const vb=$('#simvib')&&$('#simvib').checked?40*Math.sin(2*Math.PI*5.5*t):0;f=midiToHz(target+((+$('#sim').value)+vb)/100);}
+      else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);f=detectPitch(mic.buf,actx.sampleRate);}
+    }
+    let c=null;if(f){c=(hzToMidi(f)-target)*100;while(c>600)c-=1200;while(c<-600)c+=1200;}
+    trail.push({t,c});while(trail.length&&trail[0].t<t-3)trail.shift();
+    if(c==null){if(hist.length&&t-hist[hist.length-1].t>.25)hist=[];}else{hist.push({t,c});while(hist[0].t<t-WIN-.2)hist.shift();}
+    draw();if(!listening||won)return;
+    const a=c!=null&&hist.length?analyse():null;
+    if(a)voiced+=dt;
+    let ok=false,isVib=false,steady=false;
+    if(a){$('#vr').textContent=a.rate>=2?fmt(a.rate):'–';$('#ve').textContent=a.ext>=8?'±'+Math.round(a.ext):'reta';$('#vc').textContent=(a.mean>0?'+':'')+Math.round(a.mean);
+      const centred=Math.abs(a.mean)<=tol;isVib=centred&&a.rate>=4&&a.rate<=8.5&&a.ext>=12&&a.ext<=120;steady=centred&&a.ext<12;ok=isVib||steady;okT+=isVib?dt:(steady?(K()?dt:dt*.5):0);
+      hint.textContent=isVib?(K()?'A voz está balançando! Lindo!':'Vibrato regular. Mantenha!'):(steady?(K()?'Nota firme e afinada. Muito bem!':'Voz reta e afinada. Solte a voz e deixe o vibrato vir.'):(!centred?(a.mean<0?(K()?'Sobe um pouquinho ⬆':'Centro abaixo da nota: suba ⬆'):(K()?'Desce um pouquinho ⬇':'Centro acima da nota: desça ⬇')):(a.rate>8.5?(K()?'Mais calminho...':'Oscilação rápida demais: relaxe a garganta'):a.ext>120?(K()?'Balanço muito grande, mais suave':'Vibrato largo demais: menos pressão'):(K()?'Segura a nota tranquilo...':'Oscilação irregular: apoio constante, garganta livre'))));
+      if(K()&&pn-moodT>2500){moodT=pn;if(ok)guide(hint.textContent,'happy');}}
+    else hint.textContent=c==null?(K()?'Respire e cante "ôôô"':'Respire e sustente a nota'):(K()?'Segura...':'Sustente...');
+    $('#pg').style.width=Math.min(100,okT/goal*100)+'%';
+    if(okT>=goal){won=true;const sc=Math.min(100,Math.round(100*okT/Math.max(voiced,goal)));listening=false;stopMic();$('#mic').textContent='🎤 Cantar';
+      $('#scorebox').innerHTML=scoreHTML(sc,l.id);
+      hint.innerHTML=`<span class="win"><span class="big">★</span>${isVib?(K()?'Sua voz balançou!':'Vibrato natural!'):(K()?'Nota firme e linda!':'Nota firme e afinada. O vibrato vem com o tempo!')}</span>`;
+      if(opts){opts.onWin(sc);return;}markDone(l.id);saveScore(l.id,sc);$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
+  }
+  draw();
+  cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
 }
 
 /* ---------- daily warm-up, in the student's key ---------- */
@@ -1476,7 +1660,7 @@ function viewGuided(el,l,i){
 
 /* ---------- dynamics: soft and loud ---------- */
 function viewDyn(el,l,i){
-  const plan=[{k:'normal',t:K()?'Normal':'Volume normal',d:K()?'Cante "uuu" do jeito de sempre.':'Sustente um "uuu" em volume de conversa. Isso calibra o microfone.'},
+  const plan=l.plan?M(l.plan):[{k:'normal',t:K()?'Normal':'Volume normal',d:K()?'Cante "uuu" do jeito de sempre.':'Sustente um "uuu" em volume de conversa. Isso calibra o microfone.'},
     {k:'soft',t:K()?'Fraquinho':'Suave (piano)',d:K()?'Agora bem baixinho, como um segredo.':'Mesma nota, metade do volume, mantendo o ar ativo.'},
     {k:'loud',t:K()?'Forte':'Forte (forte)',d:K()?'Agora forte, usando o ar da barriga. Sem gritar!':'Mais volume vindo do apoio, sem apertar a garganta.'},
     {k:'soft',t:K()?'Fraquinho de novo':'Suave de novo',d:K()?'Voltando ao baixinho...':'Volte ao suave sem perder a nota.'}];
@@ -1515,7 +1699,7 @@ function viewDyn(el,l,i){
     if(held>=HOLD){held=0;
       if(p.k==='normal'){refs.sort((a,b)=>a-b);ref=Math.max(.06,refs[Math.floor(refs.length/2)]);}
       step++;if(step>=plan.length){won=true;dots.forEach(d=>d.className='ok');markDone(l.id);stopMic();listening=false;$('#mic').textContent='🎤 Cantar';
-        $('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Você controla a sua voz!':'Dinâmica sob controle!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
+        $('#hint').innerHTML=`<span class="win"><span class="big">★</span>${l.win?M(l.win):(K()?'Você controla a sua voz!':'Dinâmica sob controle!')}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
       show();zone();}
   }
   cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
@@ -1612,7 +1796,7 @@ function viewVoiceTest(el){
 
 /* ---------- follow the melody (in time, with score) ---------- */
 function viewFollow(el,l,i,opts){
-  const base=baseNote(l),beat=K()?.6:.5,tol=K()?50:35,pass=K()?50:60;
+  const base=baseNote(l),beat=(K()?.6:.5)*(l.tempo||1),tol=K()?50:35,pass=l.pass?M(l.pass):(K()?50:60);
   let t=0;const ev=l.steps.map((s,k)=>{const d=(l.beats?l.beats[k]:1)*beat;const e={m:base+s,t0:t,t1:t+d*.9,hit:0,tot:0};t+=d;return e;});
   const total=t,ms=ev.map(e=>e.m),minM=Math.min(...ms)-2,maxM=Math.max(...ms)+2;
   el.innerHTML=`<div class="panel">${tipBox(l)}
