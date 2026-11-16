@@ -161,6 +161,49 @@ canvas.keys{height:90px}
 .lyric span{color:var(--muted);transition:color .1s}
 .lyric span.now{color:var(--accent);font-weight:800}
 .lyric span.past{color:var(--ink)}
+body.wide .app{max-width:1040px}
+.acct{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:800;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.form{display:flex;flex-direction:column;gap:12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.92rem}
+.form input[type=text],.form input[type=email],.form input[type=password],textarea{font:inherit;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.form input:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:1px}
+.check{flex-direction:row!important;align-items:flex-start;gap:10px!important;font-weight:600!important}
+.check input{margin-top:4px;width:18px;height:18px;flex:none}
+.err{color:var(--coral);font-weight:700;min-height:1.2em}
+.okmsg{color:var(--ok);font-weight:700}
+.tabs{display:flex;gap:6px}
+.msgcard{background:var(--surface);border:2px solid var(--sun);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.msgcard p{font-weight:700}
+.msglist{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.msglist li{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.msglist small{color:var(--muted);display:block}
+.classchips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.classchips button{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:800}
+.classchips button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.codebox{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.code{font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.12em;color:var(--accent)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table.students{border-collapse:collapse;width:100%;min-width:720px;font-size:.95rem}
+table.students th{text-align:left;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
+table.students td{padding:10px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:middle}
+table.students tr:last-child td{border-bottom:0}
+table.students tbody tr{cursor:pointer}
+table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)}
+.minibar{width:90px;height:8px;border-radius:999px;background:var(--line);overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.minibar b{display:block;height:100%;background:var(--ok)}
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:800;font-size:.8rem;white-space:nowrap}
+.chip.ok{background:rgba(34,160,97,.15);color:var(--ok)}
+.chip.warn{background:rgba(255,194,60,.25);color:#9a6b00}
+.chip.bad{background:rgba(242,96,79,.15);color:var(--coral)}
+.chip.idle{background:var(--line);color:var(--muted)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip.warn{color:var(--sun)}}
+:root[data-theme="dark"] .chip.warn{color:var(--sun)}
+.detail{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.detail>div{min-width:0;display:flex;flex-direction:column;gap:10px}
+@media (max-width:720px){.detail{grid-template-columns:1fr}}
+.lessonlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.93rem}
+.lessonlist li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
+.lessonlist li span:last-child{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 .dynband{position:relative;height:120px;border-radius:14px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
 .dynband .zone{position:absolute;left:0;right:0;background:var(--band);border-block:2px dashed var(--accent)}
 .dynband .lvl{position:absolute;left:0;bottom:0;height:100%;width:100%;display:flex;align-items:flex-end;justify-content:center}
@@ -189,14 +232,15 @@ canvas.keys{height:90px}
 @media (prefers-reduced-motion: reduce){.guide .davi,.davi *,.davi.cheer{animation:none!important}.confetti{display:none}}
 </style>
 
-<div class="app\" id="app"></div>
+<div class="app" id="app"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
 const $=(s,el=document)=>el.querySelector(s);
 const store={
   get(k,d){try{const v=localStorage.getItem('vozlivre.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
-  set(k,v){try{localStorage.setItem('vozlivre.'+k,JSON.stringify(v))}catch(e){}}
+  set(k,v){try{localStorage.setItem('vozlivre.'+k,JSON.stringify(v))}catch(e){}if(['done','scores','streak','vt','mode'].includes(k))schedulePush();}
 };
 const state={
   mode:store.get('mode','kid'), voice:store.get('voice','high'),
@@ -464,6 +508,7 @@ function celebrate(i,sc){
 }
 function homeLine(){
   const n=L.filter(l=>state.done[l.id]).length;
+  if(typeof cloud!=='undefined'&&cloud.msgs.some(m=>!m.read_at))return 'Seu professor deixou um recado para você! Leia aqui embaixo.';
   if(n===0&&!state.vt)return 'Oi! Eu sou o Davi, o canarinho. Vou te ensinar a cantar para louvar a Deus! Primeiro, vamos fazer o teste de voz?';
   if(n===0)return 'Já conheço a sua voz! Agora toque na aula 1 para começar.';
   if(n===L.length)return 'Você completou a trilha inteira! Agora é cantar louvores com essa voz linda!';
@@ -471,9 +516,210 @@ function homeLine(){
   return `Que bom te ver de novo! Você já tem ${n} ${n===1?'estrela':'estrelas'}.`+(nx?` Hoje vamos fazer: ${nx.title.kid}.`:'');
 }
 
+/* ---------- cloud: accounts, progress sync, teacher panel ---------- */
+const SUPA_URL='https://wpclntveodqsshotstfo.supabase.co', SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY2xudHZlb2Rxc3Nob3RzdGZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ3ODUwNTIsImV4cCI6MjExMDM2MTA1Mn0.M-IBeBn3LeAQOEAG2uyovqt0xYsC4OIGM_Geq8QbjtQ'; // chave pública (anon), pode ficar no site
+const cloud={sb:null,user:null,profile:null,cls:null,msgs:[]};
+try{if(SUPA_URL&&SUPA_KEY&&window.supabase)cloud.sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){}
+function cloudOn(){return !!cloud.sb}
+const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function firstName(){const n=(cloud.profile&&cloud.profile.full_name)||(cloud.user&&cloud.user.email)||'';return n.split(/[ @]/)[0];}
+const PT_ERR=m=>{m=String(m||'');
+  if(/Invalid login/i.test(m))return 'E-mail ou senha incorretos.';
+  if(/already registered|already exists/i.test(m))return 'Este e-mail já tem conta. Use a aba Entrar.';
+  if(/Password should be|at least 6/i.test(m))return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(/valid email|invalid format/i.test(m))return 'Confira o e-mail digitado.';
+  if(/turma não encontrado|Código/i.test(m))return 'Código de turma não encontrado. Confira com o seu professor.';
+  if(/rate limit|too many/i.test(m))return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
+  if(/Failed to fetch|NetworkError/i.test(m))return 'Sem conexão com a internet. Tente de novo.';
+  return 'Algo deu errado: '+m;};
+let pushT=null;
+function schedulePush(){if(typeof cloud==='undefined'||!cloud.user)return;clearTimeout(pushT);pushT=setTimeout(pushProgress,1200);}
+async function pushProgress(){if(!cloud.user)return;
+  try{await cloud.sb.from('progress').upsert({user_id:cloud.user.id,done:state.done,scores:state.scores,streak:state.streak,vt:state.vt,mode:state.mode,last_lesson:state.lastLesson||null,updated_at:new Date().toISOString()});}catch(e){}}
+function mergeProgress(r){if(!r)return;
+  for(const k in (r.done||{}))if(r.done[k])state.done[k]=true;
+  for(const k in (r.scores||{}))if(!(state.scores[k]>=r.scores[k]))state.scores[k]=r.scores[k];
+  const rs=r.streak||{},ls=state.streak||{};
+  if(rs.last&&(!ls.last||rs.last>ls.last||(rs.last===ls.last&&(rs.n||0)>(ls.n||0))))state.streak={n:rs.n||0,last:rs.last};
+  if(!state.vt&&r.vt)state.vt=r.vt;
+  store.set('done',state.done);store.set('scores',state.scores);store.set('streak',state.streak);if(state.vt)store.set('vt',state.vt);}
+async function loadCloud(){
+  prof.classes=[];prof.sel=null;prof.detail=null;prof.loaded=false;
+  if(!cloud.user){cloud.profile=null;cloud.cls=null;cloud.msgs=[];return;}
+  const uid=cloud.user.id;
+  const [p,pr,m]=await Promise.all([
+    cloud.sb.from('profiles').select('*').eq('id',uid).maybeSingle(),
+    cloud.sb.from('progress').select('*').eq('user_id',uid).maybeSingle(),
+    cloud.sb.from('messages').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30)]);
+  cloud.profile=p.data||null;mergeProgress(pr.data);cloud.msgs=m.data||[];cloud.cls=null;
+  if(cloud.profile&&cloud.profile.class_id){const c=await cloud.sb.from('classes').select('id,name').eq('id',cloud.profile.class_id).maybeSingle();cloud.cls=c.data||null;}
+  await pushProgress();}
+async function initCloud(){
+  if(!cloudOn())return;
+  try{const {data}=await cloud.sb.auth.getSession();cloud.user=data.session?data.session.user:null;if(cloud.user)await loadCloud();}catch(e){}
+  cloud.sb.auth.onAuthStateChange((ev,session)=>{const u=session?session.user:null;
+    if((u&&u.id)!==(cloud.user&&cloud.user.id)){cloud.user=u;setTimeout(()=>loadCloud().catch(()=>{}).then(()=>{if(['home','conta'].includes(state.view))render();}),0);}});
+  if(['home','conta'].includes(state.view))render();}
+function homeCloudCards(){
+  if(!cloudOn())return '';
+  let h='';const unread=cloud.msgs.filter(m=>!m.read_at);
+  if(unread.length)h+=`<section class="msgcard"><span class="label">📩 Recado do seu professor${unread.length>1?` (${unread.length})`:''}</span><p>${esc(unread[unread.length-1].body)}</p>
+    <div class="row"><button class="btn ghost" id="msgread" data-id="${unread[unread.length-1].id}">Entendi</button></div></section>`;
+  if(cloud.profile&&cloud.profile.role==='teacher')h+=`<section class="vcard"><div><span class="label">Professor</span><b>Painel do professor</b><small>Veja o progresso dos seus alunos e mande recados</small></div><button class="btn" id="profgo">Abrir painel</button></section>`;
+  else if(!cloud.user)h+=`<section class="vcard"><div><span class="label">Tem professor?</span><b>Entre na sua turma</b><small>Crie uma conta para o professor acompanhar o seu progresso</small></div><button class="btn ghost" id="logingo">Entrar</button></section>`;
+  return h;}
+function wireHomeCloud(){
+  const r=$('#msgread');if(r)r.onclick=async()=>{const id=+r.dataset.id;const m=cloud.msgs.find(x=>x.id===id);if(m)m.read_at=new Date().toISOString();
+    render();try{await cloud.sb.from('messages').update({read_at:m.read_at}).eq('id',id);}catch(e){}};
+  const pg=$('#profgo');if(pg)pg.onclick=()=>go('prof');
+  const lg=$('#logingo');if(lg)lg.onclick=()=>go('conta');}
+
+function viewAccount(el){
+  if(!cloudOn()){el.innerHTML=`<div class="panel"><p>As contas de aluno ainda estão sendo configuradas. Por enquanto o seu progresso fica salvo neste aparelho.</p></div>`;return;}
+  if(cloud.user){
+    const p=cloud.profile||{};const msgs=cloud.msgs;
+    el.innerHTML=`<div class="panel">
+      <div><span class="label">Conectado como</span><h3>${esc(p.full_name||'Aluno')}</h3><p class="muted">${esc(cloud.user.email)}</p></div>
+      <p class="okmsg">✓ Seu progresso é salvo automaticamente na nuvem.</p>
+      ${p.role==='teacher'?`<button class="btn" id="profgo">Abrir painel do professor</button>`:
+      (cloud.cls?`<div><span class="label">Sua turma</span><h3>${esc(cloud.cls.name)}</h3><p class="muted">O seu professor acompanha o seu progresso.</p></div>`:
+      `<form class="form" id="joinf"><label>Código da turma<input type="text" id="jcode" maxlength="8" autocomplete="off" placeholder="Ex.: K7M2QX" style="text-transform:uppercase"></label>
+        <p class="muted" style="font-size:.9rem">Peça o código ao seu professor de canto.</p><p class="err" id="jerr"></p><button class="btn" type="submit">Entrar na turma</button></form>`)}
+      ${p.role!=='teacher'?`<div><span class="label">Recados do professor</span>${msgs.length?`<ul class="msglist">${msgs.map(m=>`<li>${esc(m.body)}<small>${new Date(m.created_at).toLocaleDateString('pt-BR')}</small></li>`).join('')}</ul>`:'<p class="muted">Nenhum recado ainda.</p>'}</div>`:''}
+      <div class="row"><button class="btn ghost" id="logout">Sair da conta</button></div></div>`;
+    const pg=$('#profgo');if(pg)pg.onclick=()=>go('prof');
+    $('#logout').onclick=async()=>{try{await cloud.sb.auth.signOut();}catch(e){}cloud.user=null;await loadCloud();
+      state.done={};state.scores={};state.streak={n:0,last:null};state.vt=null;['done','scores','streak','vt'].forEach(k=>{try{localStorage.removeItem('vozlivre.'+k)}catch(e){}});go('home');};
+    const jf=$('#joinf');if(jf)jf.onsubmit=async e=>{e.preventDefault();$('#jerr').textContent='';
+      const {data,error}=await cloud.sb.rpc('join_class',{class_code:$('#jcode').value});
+      if(error){$('#jerr').textContent=PT_ERR(error.message);return;}await loadCloud();render();};
+    return;
+  }
+  let tab='login';
+  function draw(){
+    el.innerHTML=`<div class="panel">
+      <div class="seg tabs" role="tablist"><button id="t-login" aria-pressed="${tab==='login'}">Entrar</button><button id="t-new" aria-pressed="${tab==='new'}">Criar conta</button></div>
+      ${tab==='login'?`<form class="form" id="lf">
+        <label>E-mail<input type="email" id="le" autocomplete="email" required></label>
+        <label>Senha<input type="password" id="lp" autocomplete="current-password" required></label>
+        <p class="err" id="lerr"></p><button class="btn" type="submit">Entrar</button></form>`
+      :`<form class="form" id="nf">
+        <label>Seu nome<input type="text" id="nn" autocomplete="name" required maxlength="80"></label>
+        <label>E-mail<input type="email" id="ne" autocomplete="email" required></label>
+        <label>Senha (mínimo 6 caracteres)<input type="password" id="np" autocomplete="new-password" required minlength="6"></label>
+        <label>Código da turma (opcional)<input type="text" id="nc" maxlength="8" autocomplete="off" placeholder="Peça ao seu professor" style="text-transform:uppercase"></label>
+        <label class="check"><input type="checkbox" id="nm"> Tenho menos de 18 anos</label>
+        <div id="minor" class="form" hidden>
+          <label>Nome do pai, mãe ou responsável<input type="text" id="ng" maxlength="80"></label>
+          <label class="check"><input type="checkbox" id="nok"> Sou o responsável e autorizo o cadastro e o acompanhamento do progresso no canto pelo professor.</label>
+        </div>
+        <p class="muted" style="font-size:.85rem">Guardamos só o nome, o e-mail e o progresso nas aulas, para o professor acompanhar você.</p>
+        <p class="err" id="nerr"></p><button class="btn" type="submit">Criar conta</button></form>`}
+    </div>`;
+    $('#t-login').onclick=()=>{tab='login';draw();};$('#t-new').onclick=()=>{tab='new';draw();};
+    if(tab==='login'){$('#lf').onsubmit=async e=>{e.preventDefault();const b=e.submitter;if(b)b.disabled=true;$('#lerr').textContent='';
+      const {data,error}=await cloud.sb.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});
+      if(b)b.disabled=false;if(error){$('#lerr').textContent=PT_ERR(error.message);return;}
+      cloud.user=data.user;await loadCloud().catch(()=>{});go(cloud.profile&&cloud.profile.role==='teacher'?'prof':'home');};}
+    else{
+      $('#nm').onchange=()=>{$('#minor').hidden=!$('#nm').checked;};
+      $('#nf').onsubmit=async e=>{e.preventDefault();const err=$('#nerr');err.textContent='';
+        const minor=$('#nm').checked,guardian=$('#ng').value.trim();
+        if(minor&&(!guardian||!$('#nok').checked)){err.textContent='Para menores de 18 anos, o responsável precisa preencher o nome e marcar a autorização.';return;}
+        const b=e.submitter;if(b)b.disabled=true;
+        const {data,error}=await cloud.sb.auth.signUp({email:$('#ne').value.trim(),password:$('#np').value,options:{data:{full_name:$('#nn').value.trim()}}});
+        if(error){if(b)b.disabled=false;err.textContent=PT_ERR(error.message);return;}
+        if(!data.session){if(b)b.disabled=false;err.className='okmsg';err.textContent='Conta criada! Confira seu e-mail para confirmar e depois entre.';return;}
+        cloud.user=data.user;
+        await cloud.sb.from('profiles').update({full_name:$('#nn').value.trim(),is_minor:minor,guardian_name:minor?guardian:null,guardian_consent_at:minor?new Date().toISOString():null}).eq('id',data.user.id);
+        const code=$('#nc').value.trim();let joinErr=null;
+        if(code){const r=await cloud.sb.rpc('join_class',{class_code:code});if(r.error)joinErr=PT_ERR(r.error.message);}
+        await loadCloud().catch(()=>{});
+        if(joinErr){go('conta');setTimeout(()=>{const j=$('#jerr');if(j)j.textContent=joinErr;},0);}else go('home');};
+    }
+  }
+  draw();
+}
+
+const prof={classes:[],sel:null,students:[],prog:{},msgs:[],detail:null,loaded:false};
+function relDay(iso){if(!iso)return 'nunca';const d=Math.floor((Date.now()-new Date(iso).getTime())/864e5);return d<=0?'hoje':d===1?'ontem':`há ${d} dias`;}
+function studentInfo(st){
+  const pr=prof.prog[st.id]||{},done=Object.keys(pr.done||{}).filter(k=>pr.done[k]&&idx(k)>=0).length,sc=Object.values(pr.scores||{});
+  const avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null;
+  const days=pr.updated_at?Math.floor((Date.now()-new Date(pr.updated_at).getTime())/864e5):null;
+  const sk=pr.streak||{};let streak=0;if(sk.last){const ds=Math.floor((Date.now()-new Date(sk.last+'T12:00:00').getTime())/864e5);streak=ds<=1?(sk.n||0):0;}
+  let status,cls,rank;
+  if(done===0&&(days==null||days>=3)){status='Ainda não começou';cls='idle';rank=2;}
+  else if(days!=null&&days>=5){status='Sumido';cls='bad';rank=0;}
+  else if(avg!=null&&avg<60){status='Precisa de ajuda';cls='warn';rank=1;}
+  else{status='Em dia';cls='ok';rank=3;}
+  return {pr,done,avg,days,streak,status,cls,rank,last:pr.updated_at};}
+async function profLoadClasses(){
+  const r=await cloud.sb.from('classes').select('*').eq('teacher_id',cloud.user.id).order('created_at');prof.classes=r.data||[];
+  if(!prof.sel&&prof.classes.length)prof.sel=prof.classes[0].id;}
+async function profLoadStudents(){
+  prof.students=[];prof.prog={};prof.msgs=[];if(!prof.sel)return;
+  const s=await cloud.sb.from('profiles').select('id,full_name,email,is_minor,guardian_name,created_at').eq('class_id',prof.sel).eq('role','student').order('full_name');
+  prof.students=s.data||[];const ids=prof.students.map(x=>x.id);if(!ids.length)return;
+  const [pr,ms]=await Promise.all([cloud.sb.from('progress').select('*').in('user_id',ids),
+    cloud.sb.from('messages').select('*').eq('teacher_id',cloud.user.id).in('student_id',ids).order('created_at',{ascending:false})]);
+  (pr.data||[]).forEach(x=>prof.prog[x.user_id]=x);prof.msgs=ms.data||[];}
+function viewTeacher(el){
+  if(!cloudOn()||!cloud.user){el.innerHTML=`<div class="panel"><p>Entre com a sua conta de professor.</p><button class="btn" id="lg">Entrar</button></div>`;$('#lg').onclick=()=>go('conta');return;}
+  if(!cloud.profile||cloud.profile.role!=='teacher'){el.innerHTML=`<div class="panel"><p>Esta conta ainda não é de professor.</p></div>`;return;}
+  if(!prof.loaded){el.innerHTML=`<div class="panel"><p class="muted">Carregando seus alunos...</p></div>`;
+    (async()=>{try{await profLoadClasses();await profLoadStudents();prof.loaded=true;}catch(e){prof.loaded=true;}if(state.view==='prof')viewTeacher(el);})();return;}
+  const c=prof.classes.find(x=>x.id===prof.sel);
+  const rows=prof.students.map(st=>({st,...studentInfo(st)})).sort((a,b)=>a.rank-b.rank||(a.st.full_name||'').localeCompare(b.st.full_name||''));
+  const active=rows.filter(r=>r.days!=null&&r.days<7).length,attention=rows.filter(r=>r.rank<=1).length;
+  el.innerHTML=`<div class="classchips">${prof.classes.map(x=>`<button data-c="${x.id}" aria-pressed="${x.id===prof.sel}">${esc(x.name)}</button>`).join('')}
+      <form id="ncf" class="row"><input type="text" id="ncn" placeholder="Nome da nova turma" maxlength="60" style="font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink)"><button class="btn ghost" type="submit">+ Criar turma</button></form></div>
+    ${!c?`<div class="panel"><h3>Crie a sua primeira turma</h3><p class="muted">Dê um nome (por exemplo "Coral Kids" ou "Ministério de louvor") e o app gera um código para os alunos entrarem.</p></div>`:`
+    <div class="panel">
+      <div class="codebox"><div><span class="label">Código da turma ${esc(c.name)}</span><div class="code" id="ccode">${esc(c.code)}</div></div>
+        <button class="btn ghost" id="copy">Copiar código</button><button class="btn ghost" id="reload">↻ Atualizar</button></div>
+      <p class="muted">Os alunos tocam em <b>Entrar</b> no app, criam a conta e digitam este código.</p>
+      <div class="statrow"><div class="stat"><b>${rows.length}</b><small>alunos</small></div><div class="stat"><b>${active}</b><small>treinaram nesta semana</small></div><div class="stat"><b>${attention}</b><small>precisam de atenção</small></div></div>
+    </div>
+    ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Voz</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${r.st.is_minor?' <small class="muted">(menor)</small>':''}</td>
+        <td><span class="chip ${r.cls}">${r.status}</span></td>
+        <td><span class="minibar"><b style="width:${Math.round(r.done/L.length*100)}%"></b></span>${r.done}/${L.length}</td>
+        <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
+    </tbody></table></div>`:`<div class="panel"><p class="muted">Nenhum aluno nesta turma ainda. Passe o código <b>${esc(c.code)}</b> para eles.</p></div>`}
+    <div id="det"></div>`}`;
+  el.querySelectorAll('[data-c]').forEach(b=>b.onclick=async()=>{prof.sel=b.dataset.c;prof.detail=null;prof.loaded=false;viewTeacher(el);await profLoadStudents();prof.loaded=true;viewTeacher(el);});
+  $('#ncf').onsubmit=async e=>{e.preventDefault();const n=$('#ncn').value.trim();if(!n)return;
+    const r=await cloud.sb.rpc('create_class',{class_name:n});if(r.error){$('#ncn').value='';$('#ncn').placeholder=PT_ERR(r.error.message);return;}
+    const row=Array.isArray(r.data)?r.data[0]:r.data;prof.sel=row&&row.id;await profLoadClasses();await profLoadStudents();viewTeacher(el);};
+  const cp=$('#copy');if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(c.code);cp.textContent='Copiado!';}catch(e){const r=document.createRange();r.selectNodeContents($('#ccode'));const s2=getSelection();s2.removeAllRanges();s2.addRange(r);cp.textContent='Selecionado';}};
+  const rl=$('#reload');if(rl)rl.onclick=async()=>{rl.disabled=true;await profLoadStudents();viewTeacher(el);};
+  el.querySelectorAll('tr[data-s]').forEach(tr=>tr.onclick=()=>{prof.detail=tr.dataset.s;viewTeacher(el);const d=$('#det');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});});
+  if(prof.detail){const r=rows.find(x=>x.st.id===prof.detail);if(r)drawDetail($('#det'),r);}
+}
+function drawDetail(el,r){
+  const st=r.st,pr=r.pr,sc=pr.scores||{},dn=pr.done||{},msgs=prof.msgs.filter(m=>m.student_id===st.id);
+  const tips=[];
+  if(r.days!=null&&r.days>=5)tips.push(`Não abre o app ${relDay(r.last)}. Que tal um recado de incentivo?`);
+  const low=L.filter(l=>sc[l.id]!=null&&sc[l.id]<60);if(low.length)tips.push(`Nota baixa em: ${low.map(l=>l.title.adult).join(', ')}.`);
+  if(!pr.vt)tips.push('Ainda não fez o teste de voz.');
+  el.innerHTML=`<div class="panel"><div><span class="label">Aluno</span><h3>${esc(st.full_name||st.email)}</h3>
+      <p class="muted">${esc(st.email)}${st.is_minor?` · Menor de idade, responsável: ${esc(st.guardian_name||'–')}`:''} · na turma desde ${new Date(st.created_at).toLocaleDateString('pt-BR')}</p></div>
+    ${tips.length?`<div class="tip"><span>💡</span><p>${tips.map(esc).join(' ')}</p></div>`:''}
+    <div class="detail"><div><span class="label">Aulas</span><ul class="lessonlist">${L.map((l,k)=>`<li><span>${k+1}. ${esc(l.title.adult)}</span><span>${dn[l.id]?'✓':''}${sc[l.id]!=null?` ${sc[l.id]}`:''}</span></li>`).join('')}</ul>
+      ${pr.vt?`<p><b>Voz:</b> ${esc(pr.vt.cls)}, de ${nmo(pr.vt.low)} até ${nmo(pr.vt.high)}</p>`:''}${pr.last_lesson&&idx(pr.last_lesson)>=0?`<p><b>Última aula aberta:</b> ${esc(L[idx(pr.last_lesson)].title.adult)}</p>`:''}</div>
+    <div><span class="label">Recados</span>
+      <form class="form" id="mf"><textarea id="mb" rows="3" maxlength="1000" placeholder="Ex.: Muito bem na escala! Esta semana repita a aula Nota longa afinada."></textarea><p class="err" id="merr"></p><button class="btn" type="submit">Enviar recado</button></form>
+      ${msgs.length?`<ul class="msglist">${msgs.map(m=>`<li>${esc(m.body)}<small>${new Date(m.created_at).toLocaleDateString('pt-BR')} · ${m.read_at?'lido ✓':'ainda não lido'}</small></li>`).join('')}</ul>`:'<p class="muted">Nenhum recado enviado.</p>'}
+    </div></div></div>`;
+  $('#mf').onsubmit=async e=>{e.preventDefault();const body=$('#mb').value.trim();if(!body)return;
+    const r2=await cloud.sb.from('messages').insert({teacher_id:cloud.user.id,student_id:st.id,body}).select().single();
+    if(r2.error){$('#merr').textContent=PT_ERR(r2.error.message);return;}prof.msgs.unshift(r2.data);drawDetail(el,r);};
+}
+
 /* ---------- render ---------- */
 let cleanup=null;
-function go(view){if(cleanup){cleanup();cleanup=null;}stopSpeak();lastSay='';lastMood='';state.view=view;render();window.scrollTo(0,0);}
+function go(view){if(cleanup){cleanup();cleanup=null;}stopSpeak();lastSay='';lastMood='';state.view=view;if(idx(view)>=0){state.lastLesson=view;schedulePush();}if(view==='prof')prof.loaded=false;render();window.scrollTo(0,0);}
 
 function render(){
   document.body.classList.toggle('kid',K());
@@ -482,7 +728,9 @@ function render(){
     <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg></div><b>Voz Livre</b></div>
     <div class="seg" role="group" aria-label="Modo">
       <button id="m-kid" aria-pressed="${K()}">Criança</button>
-      <button id="m-adult" aria-pressed="${!K()}">Adulto</button></div></header>`;
+      <button id="m-adult" aria-pressed="${!K()}">Adulto</button></div>
+    ${cloudOn()?`<button class="acct" id="acct" aria-label="Minha conta">${cloud.user?'👤 '+esc(firstName()):'Entrar'}</button>`:''}</header>`;
+  document.body.classList.toggle('wide',state.view==='prof');
   if(state.view==='home'){
     const stars=L.filter(l=>state.done[l.id]).length;
     const nextI=L.findIndex((l,i)=>!state.done[l.id]&&isUnlocked(i));
@@ -491,6 +739,7 @@ function render(){
     <section class="hero" ${K()?'hidden':''}>${mascot()}<div>
       <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':'Prepare sua voz para louvar'}</h1>
       <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
+    ${homeCloudCards()}
     <div class="statrow">
       <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
       <div class="stat"><b>🔥 ${streakNow()}</b><small>${streakNow()===1?'dia seguido':'dias seguidos'}</small></div>
@@ -515,10 +764,16 @@ function render(){
       <button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button></footer>`;
     app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide('Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
     if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
-    $('#vtgo').onclick=()=>go('voicetest');
+    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();
     $('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
+  } else if(state.view==='conta'){
+    app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><h2>${cloud.user?'Minha conta':'Entrar'}</h2><div id="body"></div>`;
+    $('#back').onclick=()=>go('home');viewAccount($('#body'));
+  } else if(state.view==='prof'){
+    app.innerHTML=head+`<button class="back" id="back">← Voltar ao app</button><h2>Painel do professor</h2><div id="body"></div>`;
+    $('#back').onclick=()=>go('home');viewTeacher($('#body'));
   } else if(state.view==='voicetest'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">1 minuto</span><h2>Teste de voz</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewVoiceTest($('#body'));
@@ -530,6 +785,7 @@ function render(){
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn})[l.type]($('#body'),l,i);
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
+  const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
   $('#m-kid').onclick=()=>{state.mode='kid';store.set('mode','kid');go(state.view)};
   $('#m-adult').onclick=()=>{state.mode='adult';store.set('mode','adult');go(state.view)};
 }
@@ -930,6 +1186,7 @@ function viewFollow(el,l,i){
 }
 
 render();
+initCloud();
 })();
 </script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}</script></body></html>

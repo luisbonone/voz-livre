@@ -12,3 +12,11 @@ Protótipo de app para aprender a cantar, para crianças e adultos. Funciona no 
 - **Afinação com microfone:** o app ouve a voz do aluno (Web Audio API, detecção de altura por autocorrelação) e mostra se está acima, abaixo ou na nota.
 
 Tudo está em `index.html`, sem dependências nem etapa de build. Para rodar localmente, sirva a pasta por HTTP (por exemplo `python3 -m http.server`) e abra `http://localhost:8000`. O microfone exige HTTPS ou localhost.
+
+## Contas e painel do professor
+
+O app usa o [Supabase](https://supabase.com) para as contas dos alunos, o progresso salvo na nuvem e o painel do professor.
+
+1. No Supabase, rode `supabase/schema.sql` em **SQL Editor**.
+2. Para tornar uma conta professor, rode: `update public.profiles set role = 'teacher' where email = 'EMAIL_DO_PROFESSOR';`
+3. A URL do projeto e a chave pública (anon) ficam no topo do script em `index.html` (`SUPA_URL` e `SUPA_KEY`).
