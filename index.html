@@ -925,7 +925,15 @@ function streakNow(){const s=state.streak;if(!s.last)return 0;const y=new Date()
 
 /* ---------- audio ---------- */
 let actx=null;
-function ctx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state==='suspended')actx.resume();return actx;}
+// all app sounds go through a master gain + compressor: louder on phone speakers and headphones, without distortion
+const VOLS=[{g:1.6,i:'🔉',t:'Volume normal'},{g:2.6,i:'🔊',t:'Volume alto'},{g:4,i:'📢',t:'Volume máximo'}];
+let volIdx=(()=>{try{const v=+JSON.parse(localStorage.getItem('vozlivre.vol'));return v>=0&&v<3?v:1;}catch(e){return 1;}})(),master=null;
+function ctx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});
+    const comp=actx.createDynamicsCompressor();comp.threshold.value=-3;comp.knee.value=3;comp.ratio.value=20;comp.attack.value=.003;comp.release.value=.2;
+    master=actx.createGain();master.gain.value=VOLS[volIdx].g;master.connect(comp).connect(actx.destination);}
+  if(actx.state==='suspended')actx.resume();return actx;}
+function out(){ctx();return master;}
+function setVol(i){volIdx=i;try{localStorage.setItem('vozlivre.vol',JSON.stringify(i));}catch(e){}if(master)master.gain.value=VOLS[i].g;}
 const liveOsc=new Set();
 function stopTones(){liveOsc.forEach(o=>{try{o.stop()}catch(e){}});liveOsc.clear();}
 // disable a "listen" button while its sound plays, so sounds never pile up
@@ -935,7 +943,7 @@ function playTone(hz,dur=1.4,glideTo=null,when=0,vol=.25){
   o.type='triangle';o.frequency.setValueAtTime(hz,t);
   if(glideTo){o.frequency.exponentialRampToValueAtTime(glideTo,t+dur/2);o.frequency.exponentialRampToValueAtTime(hz,t+dur);}
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.04);g.gain.setValueAtTime(vol,t+Math.max(.05,dur-.12));g.gain.linearRampToValueAtTime(0,t+dur);
-  o.connect(g).connect(c.destination);o.start(t);o.stop(t+dur+.05);liveOsc.add(o);o.onended=()=>liveOsc.delete(o);return o;
+  o.connect(g).connect(out());o.start(t);o.stop(t+dur+.05);liveOsc.add(o);o.onended=()=>liveOsc.delete(o);return o;
 }
 let mic=null;
 async function startMic(){
@@ -1398,6 +1406,7 @@ function render(){
     <div class="seg" role="group" aria-label="Modo">
       <button id="m-kid" aria-pressed="${K()}">Criança</button>
       <button id="m-adult" aria-pressed="${!K()}">Adulto</button></div>
+    <button class="acct" id="volbtn" aria-label="${VOLS[volIdx].t}" title="${VOLS[volIdx].t}">${VOLS[volIdx].i}</button>
     ${cloudOn()?`<button class="acct" id="acct" aria-label="Minha conta">${cloud.user?'👤 '+esc(firstName()):'Entrar'}</button>`:''}</header>`;
   document.body.classList.toggle('wide',state.view==='prof');
   if(state.view==='home'){
@@ -1470,6 +1479,7 @@ function render(){
     if((['seq','follow','sustain','dyn','vib'].includes(l.type)||(l.type==='guided'&&l.sung))&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
+  const vb=$('#volbtn');if(vb)vb.onclick=()=>{setVol((volIdx+1)%3);vb.textContent=VOLS[volIdx].i;vb.title=vb.ariaLabel=VOLS[volIdx].t;ctx();stopTones();playTone(523.25,.5);};
   const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
   $('#m-kid').onclick=()=>{state.mode='kid';store.set('mode','kid');go(state.view)};
   $('#m-adult').onclick=()=>{state.mode='adult';store.set('mode','adult');go(state.view)};
@@ -1717,7 +1727,7 @@ function viewStaff(el,l,i,opts){
 /* ---------- rhythm tapping with a metronome ---------- */
 const RHY=[[1,1,1,1],[2,2],[1,1,2],[.5,.5,1,1,1],[1,.5,.5,2],[1.5,.5,1,1],[2,1,1],[.5,.5,.5,.5,2]];
 const rhyName=d=>d===2?'ta-a':d===1.5?'ta.':d===.5?'ti':'ta';
-function click(when,acc){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1500:1000;g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(.3,when+.005);g.gain.exponentialRampToValueAtTime(.0001,when+.06);o.connect(g).connect(c.destination);o.start(when);o.stop(when+.08);}
+function click(when,acc){const c=ctx(),o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?1500:1000;g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(.3,when+.005);g.gain.exponentialRampToValueAtTime(.0001,when+.06);o.connect(g).connect(out());o.start(when);o.stop(when+.08);}
 function viewTap(el,l,i,opts){
   const bpm=K()?66:76,spb=60/bpm,pass=(opts&&opts.pass)||70;
   const pats=[RHY[0],RHY[2],RHY[1],RHY[3],RHY[4],RHY[5]].slice(0,K()?4:6);
