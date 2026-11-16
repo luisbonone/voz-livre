@@ -86,6 +86,9 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .steps li.ok .n{background:var(--ok);color:#fff}
 .steps .n{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--line);color:var(--ink)}
 .steps .t{min-width:0;display:flex;flex-direction:column;gap:2px}
+.ctlbar{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);margin:0 -4px;padding:10px 4px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+.ctlbar .timer{font-size:2rem}
+.steps li.on{scroll-margin:90px 0 170px}
 .timer{font-family:var(--display);font-size:2.4rem;font-weight:800;text-align:center;font-variant-numeric:tabular-nums}
 
 /* pitch */
@@ -1970,21 +1973,33 @@ function viewDaily(el){
     {t:K()?'Relaxar':'Desaquecer e relaxar',d:K()?'Boceje bem grande, gire os ombros e respire calminho.':'Boceje, gire os ombros, faça um "uuu" descendente suave. Pronto para cantar!',sec:25}];
   el.innerHTML=`<div class="panel">${K()?guideHTML('Vamos aquecer a voz juntos! Siga o som e faça igual.','happy'):'<div class="tip"><span>💡</span><p><b>Dica do professor:</b> Faça o aquecimento todos os dias, mesmo quando não for cantar muito. Ele já está no tom da sua voz.</p></div>'}
     <ol class="steps">${plan.map((w,k)=>`<li><span class="n">${k+1}</span><span class="t"><h3>${w.t}</h3><span class="muted">${w.d}</span></span></li>`).join('')}</ol>
-    <div class="timer" id="tm">5:30</div>
-    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="skip">Pular passo</button></div>
+    <div class="ctlbar"><div class="timer" id="tm">${(t=>Math.floor(t/60)+":"+String(t%60).padStart(2,"0"))(plan.reduce((x,w)=>x+w.sec,0))}</div>
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="pause" hidden>⏸ Pausar</button><button class="btn ghost" id="skip">Pular passo</button></div></div>
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   if(K()){wireGuide();lastSay='x';lastMood='happy';}
-  const items=[...el.querySelectorAll('.steps li')];let k=-1,left=0,iv=null,tos=[];
+  const items=[...el.querySelectorAll('.steps li')];let k=-1,left=0,iv=null,tos=[],paused=false;
+  const saved=store.get('dailyResume',null),canResume=saved&&saved.day===today()&&saved.k>=0&&saved.k<plan.length;
+  if(canResume){$('#go').textContent=`Continuar do passo ${saved.k+1}`;items.forEach((x,j)=>{if(j<saved.k)x.className='ok';});}
+  const focusStep=()=>{if(items[k])items[k].scrollIntoView({behavior:'smooth',block:'center'});};
+  const remember=()=>store.set('dailyResume',k>=0&&k<plan.length?{day:today(),k,left}:null);
+  const tick=()=>{clearInterval(iv);iv=setInterval(()=>{left--;if(left<=0)next();if(k<plan.length){fmt();remember();}},1000);};
   const clearT=()=>{tos.forEach(clearTimeout);tos=[];};
   function sound(w){clearT();if(w.sir){const go2=()=>{playTone(midiToHz(b),3,midiToHz(b+9));tos.push(setTimeout(go2,4200));};go2();}
     else if(w.pat){let r=0;const seq=[0,1,2,3,4,3,2,1,0];const go2=()=>{const root=b+seq[r%seq.length];w.pat.forEach((s2,j)=>playTone(midiToHz(root+s2),.33,null,j*.36));r++;tos.push(setTimeout(go2,(w.pat.length*.36+1.2)*1000));};go2();}}
   function next(){if(k>=0)items[k].classList.replace('on','ok');k++;clearT();
-    if(k>=plan.length){clearInterval(iv);$('#tm').textContent=K()?'Voz aquecida! ★':'Aquecimento concluído ★';store.set('dailyLast',today());bumpStreak();
-      $('#go').disabled=false;$('#go').textContent='Repetir';$('#after').innerHTML='<button class="btn" id="tohome">Ir para as aulas</button>';$('#tohome').onclick=()=>go('home');if(K()){confetti();guide('Voz quentinha! Agora vamos para as aulas!','cheer','force');}return;}
-    items[k].classList.add('on');left=plan[k].sec;if(K())guide(plan[k].d,'happy',true);sound(plan[k]);}
+    if(k>=plan.length){clearInterval(iv);store.set('dailyResume',null);$('#pause').hidden=true;$('#tm').textContent=K()?'Voz aquecida! ★':'Aquecimento concluído ★';store.set('dailyLast',today());bumpStreak();
+      $('#go').disabled=false;$('#go').hidden=false;$('#go').textContent='Repetir';$('#after').innerHTML='<button class="btn" id="tohome">Ir para as aulas</button>';$('#tohome').onclick=()=>go('home');if(K()){confetti();guide('Voz quentinha! Agora vamos para as aulas!','cheer','force');}return;}
+    items[k].classList.add('on');left=plan[k].sec;remember();focusStep();if(K())guide(plan[k].d,'happy',true);sound(plan[k]);}
   function fmt(){let rest=left;for(let j=k+1;j<plan.length;j++)rest+=plan[j].sec;$('#tm').textContent=Math.floor(rest/60)+':'+String(rest%60).padStart(2,'0');}
-  $('#go').onclick=()=>{ctx();items.forEach(x=>x.className='');k=-1;$('#go').disabled=true;next();fmt();clearInterval(iv);iv=setInterval(()=>{left--;if(left<=0)next();if(k<plan.length)fmt();},1000);};
-  $('#skip').onclick=()=>{if(k>=0&&k<plan.length){next();if(k<plan.length)fmt();}};
+  function setPaused(v){paused=v;$('#pause').textContent=v?'▶ Continuar':'⏸ Pausar';
+    if(v){clearInterval(iv);clearT();try{actx&&actx.suspend();}catch(e){}if(K())guide('Pausado. Quando quiser, toque em Continuar.','idle',true);}
+    else{try{actx&&actx.resume();}catch(e){}focusStep();sound(plan[k]);tick();}}
+  $('#go').onclick=()=>{ctx();const st=$('#go').textContent.startsWith('Continuar')&&canResume&&k<0?saved:null;
+    items.forEach(x=>x.className='');$('#go').disabled=true;$('#go').hidden=true;$('#pause').hidden=false;paused=false;$('#pause').textContent='⏸ Pausar';
+    if(st){items.forEach((x,j)=>{if(j<st.k)x.className='ok';});k=st.k-1;next();left=Math.max(3,st.left);}else{k=-1;next();}
+    fmt();tick();};
+  $('#pause').onclick=()=>{if(k>=0&&k<plan.length)setPaused(!paused);};
+  $('#skip').onclick=()=>{if(k>=0&&k<plan.length){next();if(k<plan.length){fmt();if(paused)setPaused(false);}}};
   cleanup=()=>{clearInterval(iv);clearT();};
 }
 
@@ -1993,15 +2008,17 @@ function viewGuided(el,l,i){
   const SEC=l.sec||20,steps=M(l.items);
   el.innerHTML=`<div class="panel">${tipBox(l)}
     <ol class="steps">${steps.map((w,k)=>`<li><span class="n">${k+1}</span><span class="t"><h3>${w[0]}</h3><span class="muted">${w[1]}</span></span></li>`).join('')}</ol>
-    <div class="timer" id="tm">${SEC}s</div>
-    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="skip">Próximo passo</button></div>
+    <div class="ctlbar"><div class="timer" id="tm">${SEC}s</div>
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="pause" hidden>⏸ Pausar</button><button class="btn ghost" id="skip">Próximo passo</button></div></div>
     <div class="row" style="justify-content:center" id="after"></div></div>`;
-  const items=[...el.querySelectorAll('.steps li')],tm=$('#tm'),btn=$('#go');let k=-1,left=0,iv=null;
+  const items=[...el.querySelectorAll('.steps li')],tm=$('#tm'),btn=$('#go'),pb=$('#pause');let k=-1,left=0,iv=null,paused=false;
+  const tick=()=>{clearInterval(iv);iv=setInterval(()=>{left--;tm.textContent=left+'s';if(left<=0)next();},1000);};
   function next(){if(k>=0)items[k].classList.replace('on','ok');k++;
-    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Muito bem! ★':'Concluído ★';markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
-    items[k].classList.add('on');left=SEC;tm.textContent=left+'s';if(K())guide(steps[k][1],'happy',true);}
-  btn.onclick=()=>{items.forEach(x=>x.className='');k=-1;btn.disabled=true;next();clearInterval(iv);iv=setInterval(()=>{left--;tm.textContent=left+'s';if(left<=0)next();},1000);};
-  $('#skip').onclick=()=>{if(k>=0&&k<items.length)next();};
+    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Muito bem! ★':'Concluído ★';markDone(l.id);btn.disabled=false;btn.hidden=false;pb.hidden=true;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
+    items[k].classList.add('on');left=SEC;tm.textContent=left+'s';items[k].scrollIntoView({behavior:'smooth',block:'center'});if(K())guide(steps[k][1],'happy',true);}
+  btn.onclick=()=>{items.forEach(x=>x.className='');k=-1;btn.disabled=true;btn.hidden=true;pb.hidden=false;paused=false;pb.textContent='⏸ Pausar';next();tick();};
+  pb.onclick=()=>{if(k<0||k>=items.length)return;paused=!paused;pb.textContent=paused?'▶ Continuar':'⏸ Pausar';if(paused)clearInterval(iv);else{items[k].scrollIntoView({behavior:'smooth',block:'center'});tick();}};
+  $('#skip').onclick=()=>{if(k>=0&&k<items.length){next();if(paused&&k<items.length){paused=false;pb.textContent='⏸ Pausar';tick();}}};
   cleanup=()=>clearInterval(iv);
 }
 
