@@ -1128,7 +1128,9 @@ function celebrate(i,sc){
   if(!K())return;confetti();
   guide(WIN_KID[Math.floor(Math.random()*WIN_KID.length)]+(sc!=null?` Sua nota foi ${sc}!`:'')+(L.every(x=>state.done[x.id])?' Você terminou a trilha toda!':(L[i+1]?' Vamos para a próxima aula?':'')),'cheer','force');
 }
-function homeLine(){
+function homeLine(){const t=homeLine0(),f=(typeof cloud!=='undefined'&&cloud.user)?firstName():'';
+  if(!f)return t;return /^Oi!/.test(t)?t.replace(/^Oi!/,`Oi, ${f}!`):`${f}, ${t[0].toLowerCase()}${t.slice(1)}`;}
+function homeLine0(){
   const n=L.filter(l=>state.done[l.id]).length;
   if(typeof cloud!=='undefined'&&cloud.recs.some(r=>r.reviewed_at&&!seenRecs().includes(r.id)))return 'O seu professor ouviu a sua gravação! Veja o que ele disse aqui embaixo.';
   if(typeof cloud!=='undefined'&&cloud.msgs.some(m=>!m.read_at))return 'Seu professor deixou um recado para você! Leia aqui embaixo.';
@@ -1187,6 +1189,7 @@ function viewBirth(el){const cur=myBirth()||'',logged=!!(cloud.user&&cloud.profi
 try{if(SUPA_URL&&SUPA_KEY&&window.supabase)cloud.sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){}
 function cloudOn(){return !!cloud.sb}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function shortName(){const n=((cloud.profile&&cloud.profile.full_name)||'').trim().split(/\s+/);if(!n[0])return firstName();const two=n.slice(0,2).join(' ');return two.length<=18?two:n[0];}
 function firstName(){const n=(cloud.profile&&cloud.profile.full_name)||(cloud.user&&cloud.user.email)||'';return n.split(/[ @]/)[0];}
 const PT_ERR=m=>{m=String(m||'');
   if(/Invalid login/i.test(m))return 'E-mail ou senha incorretos.';
@@ -1281,7 +1284,7 @@ function homeCloudCards(){
       <div class="path">${hw.map(id=>{const l=L[idx(id)];return `<button class="node ${state.done[id]?'done':'open'}" data-go="${id}"><span class="dot">${state.done[id]?'★':'▶'}</span><span class="txt"><b>${M(l.title)}</b><small>${M(l.sub)}${state.scores[id]!=null?` · Melhor nota: ${state.scores[id]}`:''}</small></span></button>`}).join('')}</div>
       <p class="muted" style="font-size:.9rem">${nd} de ${hw.length} feitas. Repetir as aulas durante a semana também conta muito!</p></section>`+h;}
   else if(classGuided()&&!(cloud.cls.released||[]).length)h=`<section class="msgcard"><span class="label">📚 ${esc(cloud.cls.name)}</span><p>O seu professor ainda vai liberar as primeiras aulas. Enquanto isso, faça o teste de voz e o aquecimento do dia.</p></section>`+h;
-  if(cloud.profile&&cloud.profile.role==='teacher')h+=`<section class="vcard"><div><span class="label">Professor</span><b>Painel do professor</b><small>Libere as aulas, passe a tarefa da semana e acompanhe os alunos</small></div><button class="btn" id="profgo">Abrir painel</button></section>`;
+  if(cloud.profile&&cloud.profile.role==='teacher')h+=`<section class="vcard"><div><span class="label">Prof. ${esc(shortName())}</span><b>Painel do professor</b><small>Libere as aulas, passe a tarefa da semana e acompanhe os alunos</small></div><button class="btn" id="profgo">Abrir painel</button></section>`;
   else if(!cloud.user)h+=`<section class="vcard"><div><span class="label">Tem professor?</span><b>Entre na sua turma</b><small>Crie uma conta para o professor acompanhar o seu progresso</small></div><button class="btn ghost" id="logingo">Entrar</button></section>`;
   return h;}
 function wireHomeCloud(){
@@ -1567,7 +1570,7 @@ function render(){
       <button id="m-teen" data-m="teen" aria-pressed="${state.mode==='teen'}">Jovem</button>
       <button id="m-adult" data-m="adult" aria-pressed="${state.mode==='adult'}">Adulto</button></div>`:''}
     <button class="acct" id="volbtn" aria-label="${VOLS[volIdx].t}" title="${VOLS[volIdx].t}">${VOLS[volIdx].i}</button>
-    ${cloudOn()?`<button class="acct" id="acct" aria-label="Minha conta">${cloud.user?'👤 '+esc(firstName()):'Entrar'}</button>`:''}</header>`;
+    ${cloudOn()?`<button class="acct" id="acct" aria-label="Minha conta">${cloud.user?'👤 '+esc(shortName()):'Entrar'}</button>`:''}</header>`;
   document.body.classList.toggle('wide',state.view==='prof');
   if(state.view==='home'){
     const stars=L.filter(l=>state.done[l.id]).length;
@@ -1575,7 +1578,7 @@ function render(){
     app.innerHTML=head+`
     ${K()?guideHTML(homeLine(),'happy'):''}
     <section class="hero" ${K()?'hidden':''}>${mascot()}<div>
-      <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':(state.mode==='teen'?'Bora treinar a voz para louvar?':'Prepare sua voz para louvar')}</h1>
+      <h1>${cloud.user&&!K()?`Olá, ${esc(firstName())}! `:''}${K()?'Oi, cantor! Vamos aprender a louvar cantando?':(state.mode==='teen'?'Bora treinar a voz para louvar?':'Prepare sua voz para louvar')}</h1>
       <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
     ${store.get('hpOk2',false)?'':`<section class="vcard daily"><div><span class="label">Antes de começar</span><b>🎧 Use fone de ouvido, de preferência com fio</b><small>O app toca a melodia enquanto você canta junto. Com fone, você escuta tudo e o microfone ouve só a sua voz. Nas aulas cantadas, prefira <b>fone com fio</b>: no celular, o fone Bluetooth costuma ficar baixo depois que o microfone liga.</small></div><button class="btn" id="hpok">Entendi</button></section>`}
     ${homeCloudCards()}
@@ -1621,7 +1624,7 @@ function render(){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><h2>${cloud.user?'Minha conta':'Entrar'}</h2><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewAccount($('#body'));
   } else if(state.view==='prof'){
-    app.innerHTML=head+`<button class="back" id="back">← Voltar ao app</button><h2>Painel do professor</h2><div id="body"></div>`;
+    app.innerHTML=head+`<button class="back" id="back">← Voltar ao app</button><div><span class="label">Prof. ${esc(shortName())}</span><h2>Painel do professor</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewTeacher($('#body'));
   } else if(state.view==='daily'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">5 minutos · no seu tom</span><h2>Aquecimento do dia</h2></div><div id="body"></div>`;
