@@ -944,7 +944,10 @@ async function startMic(){
     const c=ctx(),src=c.createMediaStreamSource(stream),an=c.createAnalyser();an.fftSize=2048;src.connect(an);
     mic={analyser:an,buf:new Float32Array(an.fftSize),stream};return true;}catch(e){return false;}
 }
-function stopMic(){if(mic){mic.stream.getTracks().forEach(t=>t.stop());mic=null;}}
+// Phones switch audio to "call mode" (low volume) while the microphone is open and the AudioContext can stay stuck there.
+// So when the mic closes we drop the old AudioContext; the next sound opens a fresh one at normal media volume.
+function resetAudio(){stopTones();if(actx){const c=actx;actx=null;try{c.close().catch(()=>{});}catch(e){}}}
+function stopMic(){if(mic){mic.stream.getTracks().forEach(t=>t.stop());mic=null;resetAudio();}}
 function rmsOf(buf){let r=0;for(let i=0;i<buf.length;i++)r+=buf[i]*buf[i];return Math.sqrt(r/buf.length);}
 function detectPitch(buf,sr){
   if(rmsOf(buf)<0.012)return null;
@@ -1575,9 +1578,10 @@ function viewSeq(el,l,i,opts){
   function show(){const m=notes[step];$('#tn').textContent=l.lyrics?`${(l.lyrics[step]||'~').replace(/[,.;-]/g,'')} · ${nm(m)}`:(l.labels?`${l.labels[step]} · ${nm(m)}`:nm(m));$('#hz').textContent=Math.round(midiToHz(m))+' Hz';
     dots.forEach((d,k)=>d.className=k<step?'ok':(k===step?'cur':''));}
   show();
-  $('#play').onclick=()=>{const pb=$('#play');if(l.chord){l.chord.forEach(s=>playTone(midiToHz(base+s),1.8,null,0,.14));muteUntil=performance.now()+1950;lockBtn(pb,1.8);return;}const dur=single?1.4:.55;
-    if(single){playTone(midiToHz(notes[0]),dur);muteUntil=performance.now()+dur*1000+150;lockBtn(pb,dur);return;}
-    notes.forEach((m,k)=>playTone(midiToHz(m),dur-.05,null,k*dur));muteUntil=performance.now()+notes.length*dur*1000+150;lockBtn(pb,notes.length*dur);};
+  $('#play').onclick=()=>{const pb=$('#play'),had=!!mic;if(had)stopMic();const back=sec=>{lockBtn(pb,sec);if(had)setTimeout(()=>{if(listening&&!mic&&!won)startMic();},sec*1000+250);};
+    if(l.chord){l.chord.forEach(s=>playTone(midiToHz(base+s),1.8,null,0,.14));muteUntil=performance.now()+1950;back(1.8);return;}const dur=single?1.4:.55;
+    if(single){playTone(midiToHz(notes[0]),dur);muteUntil=performance.now()+dur*1000+150;back(dur);return;}
+    notes.forEach((m,k)=>playTone(midiToHz(m),dur-.05,null,k*dur));muteUntil=performance.now()+notes.length*dur*1000+150;back(notes.length*dur);};
   $('#mic').onclick=async()=>{ctx();
     if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';hint.textContent=H.silent;return;}
     if(!await startMic()){demo=true;$('#demo').hidden=false;}
@@ -1833,7 +1837,7 @@ function viewVib(el,l,i,opts){
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   const cv=$('#cv'),g=cv.getContext('2d'),hint=$('#hint');
   let raf=null,listening=false,demo=false,won=false,last=performance.now(),hist=[],trail=[],okT=0,voiced=0,muteUntil=0,moodT=0;
-  $('#play').onclick=()=>{playTone(midiToHz(target),1.6);muteUntil=performance.now()+1750;lockBtn($('#play'),1.6);};
+  $('#play').onclick=()=>{const had=!!mic;if(had)stopMic();playTone(midiToHz(target),1.6);muteUntil=performance.now()+1750;lockBtn($('#play'),1.6);if(had)setTimeout(()=>{if(listening&&!mic&&!won)startMic();},1850);};
   $('#mic').onclick=async()=>{ctx();if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';return;}
     if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
   function analyse(){
