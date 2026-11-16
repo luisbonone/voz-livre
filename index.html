@@ -294,6 +294,7 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .confetti i{position:absolute;top:-20px;font-style:normal;font-size:22px;animation:fall 2.2s ease-in forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.8}}
 @media (prefers-reduced-motion: reduce){.guide .davi,.davi *,.davi.cheer{animation:none!important}.confetti{display:none}}
+.syl{display:flex;gap:10px;align-items:flex-start;background:var(--band);border:2px dashed var(--accent);border-radius:14px;padding:10px 14px;margin:0 0 12px;font-size:.95rem}.syl span{font-size:1.3em}.syl p{margin:0}.syl small{opacity:.85}
 </style>
 
 <div class="app" id="app"></div>
@@ -1305,7 +1306,24 @@ const TG_FLOW={
  exam:['Faça a prova em sala ou peça para fazer em casa.','Peça a gravação da prova no app para você ouvir e aprovar.']};
 const TG_HOME={theory:'Fazer a aula no app e acertar o quiz.',guided:'Repetir a sequência guiada 1 vez por dia.',seq:'Fazer a aula no app até ganhar a estrela, buscando nota 75 ou mais.',follow:'Cantar junto no app (com fone) até nota 60 ou mais.',sustain:'Treinar todo dia e anotar o recorde.',breath:'Repetir a respiração todos os dias antes de cantar.',warm:'Fazer o aquecimento antes de cada treino.',dyn:'Repetir a aula 2 ou 3 vezes na semana.',ear:'Fazer a aula até 80% de acertos.',staff:'Fazer a aula até 80% de acertos.',tap:'Fazer a aula até 70 pontos.',vib:'Treinar a preparação todos os dias; a aula de vibrato 2 vezes na semana.',exam:'Fazer a prova e enviar a gravação.'};
 function noteList(l){const st=l.steps||[];return st.map((x,k)=>NAMES[((x%12)+12)%12]+(l.lyrics&&l.lyrics[k]?` (${l.lyrics[k].replace(/-$/,'')})`:'')).join(' · ');}
-function roteiroHTML(l){const A=o=>(o&&typeof o==='object'&&!Array.isArray(o))?o.adult:o;let h=`<h5>Objetivo</h5><p>${esc(A(l.sub))}</p><h5>Ponto principal</h5><p>${esc(A(l.tip))}</p>`;
+
+const SYLS={
+ lu:{s:'lu',kid:'O "L" faz a língua soltar e o "u" deixa a garganta aberta. Fica fácil acertar cada nota!',adult:'O "L" dá um início limpo a cada nota sem golpe de glote, e o "u" mantém a laringe baixa e a garganta aberta. É a sílaba mais fácil para afinar.'},
+ u:{s:'uuu',kid:'Faça um biquinho, como se fosse soprar uma vela devagar.',adult:'Lábios em bico, garganta relaxada. O "u" é a vogal mais estável e ajuda a voz a ficar leve e afinada.'},
+ la:{s:'lá',kid:'Boca aberta, sorrindo por dentro. O "L" ajuda a mudar de nota no tempo certo.',adult:'O "L" articula cada nota no tempo sem travar o ar, e o "á" aberto deixa o som projetar.'},
+ ma:{s:'má',kid:'O "mmm" faz cócegas nos lábios e ajuda a voz a sair na frente.',adult:'O "m" coloca a ressonância na frente do rosto e o "á" aberto permite variar o volume sem apertar a garganta.'},
+ ma2:{s:'mã',kid:'Boca bem aberta, sentindo o peito vibrar.',adult:'O "m" posiciona a ressonância e o "ã" aberto ajuda a sentir a vibração no peito, sem empurrar.'},
+ a:{s:'a',kid:'Boca aberta e queixo solto, sem mexer o queixo entre as notas.',adult:'Vogal aberta e ligada, com o queixo parado. Assim a nota muda pelo ar e pelas pregas, não pela boca.'},
+ o:{s:'ó',kid:'Mantenha a mesma boca de "ó" em todas as notas.',adult:'Mantenha a vogal "ó" igual em todas as notas do melisma, sem aspirar entre elas.'},
+ nome:{s:'o nome da nota (Dó, Mi, Sol)',kid:'Dizer o nome ajuda a lembrar onde a nota mora.',adult:'Cantar o nome da nota liga o som à teoria e ajuda a achar a nota no acorde.'},
+ letra:{s:'a letra do louvor',kid:'Se ficar difícil, cante primeiro em "lu" e depois coloque as palavras.',adult:'Se a letra atrapalhar a afinação, cante a melodia primeiro em "lu" e depois coloque as palavras, articulando bem as consoantes.'}};
+const SYL_ID={first:'lu',sustain:'u',scale3:'lu',scale5:'lu',updown:'lu',leaps:'lu',long:'u',follow1:'la',dyn:'ma',chest:'ma2',head:'u',passage:'u',range_up:'lu',range_low:'ma2',octave:'lu',vib_osc:'u',vibrato:'a',agil1:'a',agil2:'a',agil3:'a',glo1:'o',belt:'ma',messa:'ma',hold_note:'u',chordstart:'nome'};
+function sylKey(l){if(!l||l.id==='vowels')return null;if(l.syl)return l.syl;if(SYL_ID[l.id])return SYL_ID[l.id];if(l.lyrics)return 'letra';
+  if(l.type==='exam')return 'lu';return({seq:'lu',follow:'la',sustain:'u',dyn:'ma',vib:'a'})[l.type]||null;}
+function sylHTML(l){const k=sylKey(l);if(!k)return '';const y=SYLS[k],w=(k==='nome'||k==='letra')?y.s:`em "${y.s}"`;
+  return `<div class="syl"><span>🗣️</span><p><b>${l.type==='exam'?'Nas partes cantadas, cante':'Cante'} ${w}</b><br><small>${K()?y.kid:y.adult}</small></p></div>`;}
+function sylText(l){const k=sylKey(l);if(!k)return '';const y=SYLS[k];return (k==='nome'||k==='letra'?`Cantar ${y.s}. `:`Cantar em "${y.s}". `)+y.adult;}
+function roteiroHTML(l){const A=o=>(o&&typeof o==='object'&&!Array.isArray(o))?o.adult:o;let h=`<h5>Objetivo</h5><p>${esc(A(l.sub))}</p><h5>Ponto principal</h5><p>${esc(A(l.tip))}</p>`;if(sylKey(l))h+=`<h5>Com que sílaba cantar</h5><p>${esc(sylText(l))}</p>`;
   if(l.slides)h+=`<h5>Conteúdo</h5><ul>${A(l.slides).map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ul>`;
   if(l.items)h+=`<h5>Passos</h5><ol>${A(l.items).map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ol>`;
   if(l.steps&&(l.type==='seq'||l.type==='follow'))h+=`<h5>Notas (em Dó; o app ajusta ao tom de cada aluno)</h5><p>${esc(noteList(l))}</p>`;
@@ -1532,7 +1550,7 @@ function render(){
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');if(isTeacher()&&prof.tab==='aulas'){$('#back').textContent='← Voltar ao painel';$('#back').onclick=()=>go('prof');}
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
-    if(['seq','follow','sustain','dyn','vib','exam'].includes(l.type)){$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();}
+    if(['seq','follow','sustain','dyn','vib','exam'].includes(l.type)){const sp=$('#body .panel')||$('#body');sp.insertAdjacentHTML('afterbegin',sylHTML(l));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();}
     if((['seq','follow','sustain','dyn','vib'].includes(l.type)||(l.type==='guided'&&l.sung))&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
