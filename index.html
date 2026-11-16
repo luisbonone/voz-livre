@@ -927,13 +927,14 @@ function streakNow(){const s=state.streak;if(!s.last)return 0;const y=new Date()
 let actx=null;
 // all app sounds go through a master gain + compressor: louder on phone speakers and headphones, without distortion
 const VOLS=[{g:1.6,i:'🔉 Normal',t:'Volume normal'},{g:2.6,i:'🔊 Alto',t:'Volume alto'},{g:4,i:'📢 Máximo',t:'Volume máximo'}];
+let btHeadset=false,micUsed=false;const gainNow=()=>VOLS[volIdx].g*(btHeadset&&micUsed?1.8:1);
 let volIdx=(()=>{try{const v=+JSON.parse(localStorage.getItem('vozlivre.vol'));return v>=0&&v<3?v:1;}catch(e){return 1;}})(),master=null;
 function ctx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});
     const comp=actx.createDynamicsCompressor();comp.threshold.value=-3;comp.knee.value=3;comp.ratio.value=20;comp.attack.value=.003;comp.release.value=.2;
-    master=actx.createGain();master.gain.value=VOLS[volIdx].g;master.connect(comp).connect(actx.destination);}
+    master=actx.createGain();master.gain.value=gainNow();master.connect(comp).connect(actx.destination);}
   if(actx.state==='suspended')actx.resume();return actx;}
 function out(){ctx();return master;}
-function setVol(i){volIdx=i;try{localStorage.setItem('vozlivre.vol',JSON.stringify(i));}catch(e){}if(master)master.gain.value=VOLS[i].g;}
+function setVol(i){volIdx=i;try{localStorage.setItem('vozlivre.vol',JSON.stringify(i));}catch(e){}if(master)master.gain.value=gainNow();}
 const liveOsc=new Set();
 function stopTones(){liveOsc.forEach(o=>{try{o.stop()}catch(e){}});liveOsc.clear();}
 // disable a "listen" button while its sound plays, so sounds never pile up
@@ -966,11 +967,17 @@ async function startMic(){
           const pick=alt.find(d=>/speaker|built|phone|interno|bottom|mic/i.test(d.label))||alt[0];
           if(pick){stream.getTracks().forEach(t=>t.stop());stream=await gum({...base,deviceId:{exact:pick.deviceId}});try{localStorage.setItem('vozlivre.micId',pick.deviceId);}catch(e){}}}
       }catch(e){}}
+    try{const ds2=await navigator.mediaDevices.enumerateDevices();btHeadset=ds2.some(d=>d.kind!=='videoinput'&&isBT(d));}catch(e){}
+    micUsed=true;if(btHeadset)btTip();
     const c=ctx(),src=c.createMediaStreamSource(stream),an=c.createAnalyser();an.fftSize=2048;src.connect(an);
     mic={analyser:an,buf:new Float32Array(an.fftSize),stream};return true;}catch(e){return false;}
 }
 // Phones switch audio to "call mode" (low volume) while the microphone is open and the AudioContext can stay stuck there.
 // So when the mic closes we drop the old AudioContext; the next sound opens a fresh one at normal media volume.
+function btTip(){if(sessionStorage.getItem('vlBtTip'))return;try{sessionStorage.setItem('vlBtTip','1');}catch(e){}
+  const b=document.querySelector('#body');if(!b)return;const t=document.createElement('div');t.className='tip';
+  t.innerHTML='<span>🎧</span><p><b>Fone Bluetooth:</b> no celular, depois que o microfone liga, o fone Bluetooth costuma ficar mais baixo (é o "modo de chamada" do próprio celular). O app já aumenta o som nesse caso. Se ainda ficar baixo, aperte o botão de <b>aumentar volume do celular enquanto o som toca</b>, ou use um <b>fone com fio</b> nas aulas cantadas.</p>';
+  b.prepend(t);}
 function resetAudio(){stopTones();if(actx){const c=actx;actx=null;try{c.close().catch(()=>{});}catch(e){}}}
 function stopMic(){if(mic){mic.stream.getTracks().forEach(t=>t.stop());mic=null;resetAudio();}}
 function rmsOf(buf){let r=0;for(let i=0;i<buf.length;i++)r+=buf[i]*buf[i];return Math.sqrt(r/buf.length);}
