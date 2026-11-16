@@ -279,7 +279,7 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .bubble{position:relative;flex:1;min-width:0;background:var(--surface);border:2px solid var(--accent);border-radius:18px 18px 18px 6px;padding:12px 14px;font-weight:700;font-size:1rem}
 .bubble small{display:block;font-family:var(--display);color:var(--accent);font-size:.9rem;line-height:1.1;margin-bottom:2px}
 .bubble .spk{position:absolute;top:6px;right:8px;border:0;background:transparent;font-size:1rem;padding:2px}
-.bubble #dvoice{right:34px;font-size:.9rem}.bubble small{display:block;padding-right:56px}
+.bubble small{display:block;padding-right:28px}
 .bubble p{padding-right:22px}
 .davi .eye{animation:blink 4s infinite;transform-origin:center;transform-box:fill-box}
 .davi.talk .beak-low{animation:talk .22s ease-in-out infinite alternate;transform-origin:top;transform-box:fill-box}
@@ -1067,13 +1067,12 @@ function davi(mood){
 }
 function guideHTML(text,mood){
   return `<div class="guide" id="guide">${davi(mood)}<div class="bubble"><small>Davi, o canarinho</small><p id="gtext">${text}</p>
-    <button class="spk" id="spk" aria-label="${voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi'}">${voiceOn?'🔊':'🔇'}</button><button class="spk" id="dvoice" aria-label="Trocar a voz do Davi" title="Trocar a voz do Davi">🔁</button></div></div>`;
+    <button class="spk" id="spk" aria-label="${voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi'}">${voiceOn?'🔊':'🔇'}</button></div></div>`;
 }
 let lastSay='',lastMood='';
 function wireGuide(){const b=$('#spk');if(b)b.onclick=()=>{voiceOn=!voiceOn;store.set('voiceOn',voiceOn);
   b.textContent=voiceOn?'🔊':'🔇';b.setAttribute('aria-label',voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi');
-  if(voiceOn)speak($('#gtext').textContent,true);else stopSpeak();};
-  const dv=$('#dvoice');if(dv)dv.onclick=()=>{const n=nextDaviVoice();if(!voiceOn){voiceOn=true;store.set('voiceOn',true);if(b){b.textContent='🔊';}}speak(n>1?'Oi! Eu sou o Davi. Gostou desta voz?':'Oi! Eu sou o Davi. Este celular só tem esta voz.',true);};}
+  if(voiceOn)speak($('#gtext').textContent,true);else stopSpeak();};}
 // update the bubble; speak only when the mic is off (so Davi isn't heard as the student) unless forced
 function guide(text,mood,doSpeak){
   const g=$('#guide');if(!g)return;
