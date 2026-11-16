@@ -1530,7 +1530,7 @@ function viewSustain(el,l,i){
   let raf=null,listening=false,demo=false,run=0,best=0,quiet=0,won=false,simOn=false,last=performance.now();
   const hb=$('#hold');['pointerdown','pointerup','pointerleave'].forEach(e=>hb.addEventListener(e,()=>simOn=e==='pointerdown'));
   $('#mic').onclick=async()=>{ctx();if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';return;}
-    if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
+    run=0;quiet=0;won=false;$('#t').textContent='0,0s';$('#pg').style.width='0%';$('#after').innerHTML='';$('#hint').textContent=K()?'Respire fundo e solte "uuu"':'Respire e sustente um "uuu"';if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
   function loop(){raf=requestAnimationFrame(loop);const now=performance.now(),dt=(now-last)/1000;last=now;
     let on=false,v=0;
     if(listening){if(demo){on=simOn;v=on?.6:0;}else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);const r=rmsOf(mic.buf);v=Math.min(1,r*8);on=r>0.015&&detectPitch(mic.buf,actx.sampleRate)!=null;}}
@@ -1584,7 +1584,7 @@ function viewSeq(el,l,i,opts){
     notes.forEach((m,k)=>playTone(midiToHz(m),dur-.05,null,k*dur));muteUntil=performance.now()+notes.length*dur*1000+150;back(notes.length*dur);};
   $('#mic').onclick=async()=>{ctx();
     if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';hint.textContent=H.silent;return;}
-    if(!await startMic()){demo=true;$('#demo').hidden=false;}
+    won=false;step=0;held=0;trail=[];needGap=false;gapT=0;stepT=0;moodT=0;voiced=0;inT=0;absSum=0;run=0;outT=0;smooth=null;pg.style.width='0%';$('#scorebox').innerHTML='';if(!opts)$('#after').innerHTML='';show();if(!await startMic()){demo=true;$('#demo').hidden=false;}
     listening=true;$('#mic').textContent='■ Parar';hint.textContent=H.silent;if(!raf)loop();};
   function draw(cents){
     const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
@@ -1839,7 +1839,7 @@ function viewVib(el,l,i,opts){
   let raf=null,listening=false,demo=false,won=false,last=performance.now(),hist=[],trail=[],okT=0,voiced=0,muteUntil=0,moodT=0;
   $('#play').onclick=()=>{const had=!!mic;if(had)stopMic();playTone(midiToHz(target),1.6);muteUntil=performance.now()+1750;lockBtn($('#play'),1.6);if(had)setTimeout(()=>{if(listening&&!mic&&!won)startMic();},1850);};
   $('#mic').onclick=async()=>{ctx();if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';return;}
-    if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
+    won=false;okT=0;voiced=0;hist=[];trail=[];$('#pg').style.width='0%';$('#scorebox').innerHTML='';if(!opts)$('#after').innerHTML='';['#vr','#ve','#vc'].forEach(x=>$(x).textContent='–');if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
   function analyse(){
     const t1=hist[hist.length-1].t,w=hist.filter(p=>p.t>=t1-WIN);
     if(w.length<20||w[w.length-1].t-w[0].t<WIN*.85)return null;
@@ -2059,7 +2059,7 @@ function viewDyn(el,l,i){
   function zone(){const z=$('#zone');if(!ref||plan[step].k==='normal'){z.hidden=true;return;}z.hidden=false;
     const [a,b]=plan[step].k==='soft'?[ref*.25,ref*.7]:[ref*1.4,Math.max(ref*3,1)];z.style.bottom=toH(a)+'%';z.style.height=(toH(Math.min(b,1))-toH(a))+'%';}
   $('#mic').onclick=async()=>{ctx();if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';return;}
-    if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
+    won=false;step=0;ref=null;refs=[];held=0;$('#pg').style.width='0%';$('#after').innerHTML='';show();zone();if(!await startMic()){demo=true;$('#demo').hidden=false;}listening=true;$('#mic').textContent='■ Parar';if(!raf)loop();};
   function loop(){raf=requestAnimationFrame(loop);const now=performance.now(),dt=(now-last)/1000;last=now;if(!listening||won)return;
     let v=0,voiced=false;
     if(demo){v=(+$('#sim').value)/100;voiced=v>.03;}
