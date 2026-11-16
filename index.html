@@ -1643,18 +1643,18 @@ function viewSeq(el,l,i,opts){
     else if(kind==='next')guide(l.labels?`Agora a vogal ${l.labels[step]}!`:(l.lyrics&&l.lyrics[step]?`Agora: "${l.lyrics[step].replace(/[,.;-]/g,'')}"!`:`Agora a nota ${nm(notes[step])}!`),'happy'); }
   const H={up:K()?'Sobe um pouquinho! ⬆':'Um pouco abaixo: suba ⬆',down:K()?'Desce um pouquinho! ⬇':'Um pouco acima: desça ⬇',
     ok:K()?'Isso! Segura assim!':'Afinado. Sustente!',silent:K()?'Cante "lá" quando quiser':'Cante quando estiver pronto',gap:K()?'Respira... e a próxima!':'Pausa curta... próxima nota'};
-  const holdNow=()=>phase==='all'?Math.max(.35,hold*.6):hold;
+  const allHold=Math.max(1.2,hold),holdNow=()=>phase==='all'?allHold:hold;
   // guided prompt: the app plays the note (or, in step 2, all notes) with the mic paused, then listens again
   function prompt(){if(!guided)return;if(mic)stopMic();held=0;pg.style.width='0%';let dur;
     if(phase==='one'){playTone(midiToHz(notes[step]),1.3);dur=1.3;hint.textContent=K()?`Escute a nota ${nm(notes[step])}...`:`Ouça: ${nm(notes[step])}...`;}
-    else{notes.forEach((m,k)=>playTone(midiToHz(m),1.3,null,k*1.5));dur=notes.length*1.5;hint.textContent=K()?'Escute todas juntas...':'Ouça a sequência inteira...';}
+    else{notes.forEach((m,k)=>playTone(midiToHz(m),allHold,null,k*(allHold+.1)));dur=notes.length*(allHold+.1);hint.textContent=K()?'Escute todas juntas...':'Ouça a sequência inteira...';}
     muteUntil=performance.now()+dur*1000+250;lockBtn($('#play'),dur);
     if(!demo)setTimeout(async()=>{if(listening&&!mic&&!won){if(!await startMic()){demo=true;$('#demo').hidden=false;}}},dur*1000+250);}
   function show(){const m=notes[step];$('#tn').textContent=l.lyrics?`${(l.lyrics[step]||'~').replace(/[,.;-]/g,'')} · ${nm(m)}`:(l.labels?`${l.labels[step]} · ${nm(m)}`:nm(m));$('#hz').textContent=Math.round(midiToHz(m))+' Hz';
     dots.forEach((d,k)=>d.className=k<step?'ok':(k===step?'cur':''));}
   show();
   $('#play').onclick=()=>{if(guided&&listening&&!won){prompt();return;}
-    if(guided&&!listening){const pb=$('#play');notes.forEach((m,k)=>playTone(midiToHz(m),1.3,null,k*1.5));lockBtn(pb,notes.length*1.5);return;}
+    if(guided&&!listening){const pb=$('#play');notes.forEach((m,k)=>playTone(midiToHz(m),allHold,null,k*(allHold+.1)));lockBtn(pb,notes.length*(allHold+.1));return;}
     const pb=$('#play'),had=!!mic;if(had)stopMic();const back=sec=>{lockBtn(pb,sec);if(had)setTimeout(()=>{if(listening&&!mic&&!won)startMic();},sec*1000+250);};
     if(l.chord){l.chord.forEach(s=>playTone(midiToHz(base+s),1.8,null,0,.14));muteUntil=performance.now()+1950;back(1.8);return;}const dur=single?1.4:.55;
     if(single){playTone(midiToHz(notes[0]),dur);muteUntil=performance.now()+dur*1000+150;back(dur);return;}
