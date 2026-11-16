@@ -423,6 +423,21 @@ const L=[
   tip:{kid:'Você chegou no último louvor da trilha! Cante a Doxologia inteira, bem bonito, para glorificar a Deus.',
        adult:'Quatro frases de 8 notas. Respire no fim de cada frase, na nota longa, e mantenha o pulso regular do começo ao fim.'}}
 ];
+
+/* ===== Original worship songs written for Voz Livre (no third-party copyright) ===== */
+const ORIG='Louvor original do Voz Livre (letra e melodia feitas para o app).';
+const TEB=[4,4,5,4,2, 0,2,4,5,4,2,0, 4,4,5,7,9, 7,5,4,2,2,0];
+const TEB_B=[1,1,2,1,3, .5,.5,1,1,1,1,3, 1,1,2,1,3, 1,1,1,1,1,3];
+const TEB_L=['Tu','és','bom,','Se-','nhor,','o','Teu','a-','mor','não','tem','fim.','Tu','és','bom,','Se-','nhor,','cui-','das','sem-','pre','de','mim.'];
+const AMV=[0,0,2,4,4,2,4,5, 4,4,5,7,5,4,2, 0,0,2,4,4,2,4,7, 7,5,4,4,2,2,0];
+const AMV_B=[.5,.5,.5,1,.5,.5,1,2, .5,.5,.5,1,.5,1,2.5, .5,.5,.5,1,.5,.5,1,2, .5,.5,.5,1,.5,1,2.5];
+const AMV_L=['Lo-','go','ce-','do eu','Te','bus-','co,','',  'mi-','nha','voz','Te','quer','lou-','var.',  'Tu-','a','luz','re-','no-','va a','vi-','da,',  'Tu-','a','paz','me','faz','can-','tar.'];
+const AMR=[7,7,9,7, 5,5,7,5, 4,5,7,9,7,5, 7,7,9,7, 5,5,7,5, 4,4,5,4,2,0];
+const AMR_B=[.5,.5,1,2, .5,.5,1,2, .5,.5,1,1,.5,2.5, .5,.5,1,2, .5,.5,1,2, .5,.5,1,1,.5,2.5];
+const AMR_L=['A-','le-','lu-','ia,','a-','le-','lu-','ia,','Tu-','a','gló-','ria en-','cheu o','céu.','A-','le-','lu-','ia,','a-','le-','lu-','ia,','San-','to é o','no-','me','de','Deus.'];
+const TAD=[0,4,5,7,9,7,7, 9,9,7,5,4,4, 0,4,5,7,12,11, 9,7,5,4,2,0];
+const TAD_B=[.5,.5,.5,1.5,.5,.5,2, .5,1,.5,1,.5,2.5, .5,1,.5,.5,1.5,2, .5,1,.5,.5,1.5,2];
+const TAD_L=['Nós','Te a-','do-','ra-','mos,','ó','Deus,','com','to-','do o','nos-','so','ser;','Teu','no-','me e-','xal-','ta-','mos,','és','dig-','no','de','lou-','vor.'];
 /* ===== Course structure: levels -> units -> lessons ===== */
 const LEVELS=[
   {n:1,title:'Iniciante',sub:{kid:'Conhecendo a sua voz',adult:'Postura, respiração, saúde vocal e a primeira nota afinada'}},
@@ -812,19 +827,46 @@ L.push(
   tip:{kid:'Esta é a última prova do curso! Você já sabe tudo isso. Respire fundo e cante para Deus!',adult:'Prova final: achar as notas a partir do acorde, sustentar a 2ª voz contra a melodia e cantar um louvor completo.'},
   parts:[{kind:'seq',chord:[0,4,7],steps:[0,4,7,0],hold:{kid:1,adult:1.2},pass:{kid:55,adult:65},title:'Parte 1: notas do acorde'},{kind:'follow',ref:'voz2a',pass:{kid:35,adult:45},title:'Parte 2: segunda voz'},{kind:'follow',ref:'final_song',pass:{kid:45,adult:55},title:'Parte 3: louvor completo'}]}
 );
+
+L.push(
+ {id:'teb_seq',type:'seq',steps:TEB,lyrics:TEB_L,gapRepeats:true,credit:ORIG,
+  title:{kid:'Louvor novo: Tu és bom',adult:'Louvor: Tu és bom'},
+  sub:{kid:'Um louvor feito para você',adult:'Louvor atual, nota por nota'},
+  tip:{kid:'Esse louvor foi feito especialmente para o Voz Livre! Cante cada palavra com alegria.',adult:'Louvor em estilo atual, com refrão simples. Aprenda nota por nota antes de cantar no ritmo.'}},
+ {id:'teb',type:'follow',steps:TEB,beats:TEB_B,lyrics:TEB_L,credit:ORIG,
+  title:{kid:'Siga o louvor: Tu és bom',adult:'Siga a melodia: Tu és bom'},
+  sub:{kid:'O louvor inteiro no ritmo',adult:'Refrão completo, no tempo'},
+  tip:{kid:'Agora canta tudo no ritmo! As palavras "bom" e "Senhor" são compridas.',adult:'Segure as notas longas em "bom", "Senhor", "fim" e "mim", e respire nelas.'}},
+ {id:'amv',type:'follow',steps:AMV,beats:AMV_B,lyrics:AMV_L,credit:ORIG,
+  title:{kid:'Louvor novo: Canção do amanhecer',adult:'Canção do amanhecer (estrofe)'},
+  sub:{kid:'A estrofe, com ritmo de hoje',adult:'Estrofe com síncopes, em estilo atual'},
+  tip:{kid:'Esse louvor tem um ritmo mais moderno, com notas curtinhas e compridas. Ouça bem antes!',adult:'Inspirado no Salmo 5:3. As frases começam em contratempo, como nos louvores atuais: ouça a gravação e sinta o balanço antes de cantar.'}},
+ {id:'amr',type:'follow',steps:AMR,beats:AMR_B,lyrics:AMR_L,credit:ORIG,
+  title:{kid:'Canção do amanhecer: refrão',adult:'Canção do amanhecer (refrão)'},
+  sub:{kid:'O "Aleluia" bem alegre',adult:'Refrão mais agudo e aberto'},
+  tip:{kid:'Agora o refrão, mais alto e alegre: Aleluia!',adult:'O refrão sobe para a região média-aguda. Use voz aberta com apoio, sem empurrar, e segure o "ia" de cada aleluia.'}},
+ {id:'tad',type:'follow',steps:TAD,beats:TAD_B,lyrics:TAD_L,credit:ORIG,
+  title:{kid:'Louvor novo: Te adoramos',adult:'Louvor: Te adoramos'},
+  sub:{kid:'Um louvor com notas bem altas',adult:'Extensão de uma oitava, com interpretação'},
+  tip:{kid:'Esse louvor tem uma nota bem alta em "exaltamos". Pense nela antes e cante leve!',adult:'Melodia que sobe até a oitava em "exaltamos" e repousa em "louvor". Aplique o que aprendeu de interpretação: conduza a frase até o ponto alto e resolva com suavidade.'}},
+ {id:'tad_v2',type:'follow',steps:harm(TAD,-2),beats:TAD_B,lyrics:TAD_L,acc:{steps:TAD,beats:TAD_B},accLabel:'melodia',pass:{kid:35,adult:45},credit:ORIG+' Segunda voz em terças.',
+  title:{kid:'Segunda voz: Te adoramos',adult:'2ª voz: Te adoramos'},
+  sub:{kid:'Segunda voz num louvor atual',adult:'Terças abaixo num louvor atual'},
+  tip:{kid:'Faça a segunda voz de "Te adoramos", mais baixinho que a melodia. '+HEADPH,adult:'Segunda voz em terças de "Te adoramos". Atenção ao ponto alto: a 2ª voz chega no Lá enquanto a melodia vai ao Dó agudo. '+HEADPH}}
+);
 const ORDER={posture:'n1a',breath:'n1a',health:'n1a',warm:'n1a', ear_hl:'n1b',first:'n1b',sustain:'n1b',voicehow:'n1b',exam1:'n1b',
   vowels:'n2a',scale3:'n2a',scale5:'n2a',theory_scale:'n2a',updown:'n2a',ear_int:'n2a',leaps:'n2a',long:'n2a',follow1:'n2a',
   support:'n2b',diction:'n2b',dyn:'n2b',
-  song1:'n2c',follow2:'n2c',song2:'n2c',follow3:'n2c',song3:'n2c',follow4:'n2c',exam2:'n2c',
+  song1:'n2c',follow2:'n2c',song2:'n2c',follow3:'n2c',song3:'n2c',follow4:'n2c',teb_seq:'n2c',teb:'n2c',exam2:'n2c',
   theory_reg:'n3a',chest:'n3a',head:'n3a',sovt:'n3a',passage:'n3a',
   range_up:'n3b',range_low:'n3b',octave:'n3b',
   theory_rhythm:'n3c',tap1:'n3c',theory_read:'n3c',staff1:'n3c',
-  song4:'n3d',follow5:'n3d',exam3:'n3d',
+  song4:'n3d',follow5:'n3d',amv:'n3d',amr:'n3d',exam3:'n3d',
   theory_vib:'n4a',vib_prep:'n4a',vib_osc:'n4a',vibrato:'n4a',
   theory_agil:'n4b',agil1:'n4b',agil2:'n4b',agil3:'n4b',glo1:'n4b',
   theory_belt:'n4c',twang:'n4c',belt:'n4c',
-  theory_interp:'n4d',messa:'n4d',interp:'n4d',glo2:'n4d',exam4:'n4d',
-  theory_group:'n5a',unison:'n5a',theory_harm:'n5a',hold_note:'n5a',voz2a:'n5a',voz2b:'n5a',voz3:'n5a',
+  theory_interp:'n4d',messa:'n4d',interp:'n4d',glo2:'n4d',tad:'n4d',exam4:'n4d',
+  theory_group:'n5a',unison:'n5a',theory_harm:'n5a',hold_note:'n5a',voz2a:'n5a',voz2b:'n5a',voz3:'n5a',tad_v2:'n5a',
   theory_band:'n5b',chordstart:'n5b',theory_mic:'n5b',mic_tech:'n5b',
   theory_presence:'n5c',presence:'n5c',
   prep:'n5d',final_song:'n5d',exam5:'n5d'};
@@ -834,7 +876,7 @@ L.sort((a,b)=>ORD_KEYS.indexOf(a.id)-ORD_KEYS.indexOf(b.id));
 const levelOf=l=>(UNITS.find(u=>u.id===l.unit)||{}).level;
 function studentLevel(done){return done&&done.exam4?5:done&&done.exam3?4:(done&&done.exam2?3:(done&&done.exam1?2:1));}
 const idx=id=>L.findIndex(l=>l.id===id);
-const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id];
+const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id]||L.slice(i).some(x=>state.done[x.id]);
 
 function saveScore(id,v){if(!(state.scores[id]>=v)){state.scores[id]=v;store.set('scores',state.scores);}}
 function scoreLabel(v){return v>=90?'Excelente!':v>=75?'Muito bom!':v>=60?'Bom!':'Continue praticando'}
@@ -1252,6 +1294,7 @@ function render(){
     <section class="hero" ${K()?'hidden':''}>${mascot()}<div>
       <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':'Prepare sua voz para louvar'}</h1>
       <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
+    ${store.get('hpOk',false)?'':`<section class="vcard daily"><div><span class="label">Antes de começar</span><b>🎧 Use fone de ouvido</b><small>O app toca a melodia enquanto você canta junto. Com fone, você escuta tudo e o microfone ouve só a sua voz.</small></div><button class="btn" id="hpok">Entendi</button></section>`}
     ${homeCloudCards()}
     <div class="statrow">
       <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
@@ -1266,6 +1309,7 @@ function render(){
         <button id="v-low" aria-pressed="${state.voice==='low'}">Grave (masculina)</button>
         <button id="v-high" aria-pressed="${state.voice==='high'}">Aguda (feminina)</button></div></section>`:''}
     ${dailyCard()}
+    ${freeCard()}
     ${LEVELS.map(lv=>{
       if(lv.soon)return `<section class="level"><div class="levelhead locked"><span class="lv">${lv.n}</span><div><b>Nível ${lv.n} · ${lv.title}</b><small>Em breve</small></div></div>
         <div class="soon"><ul>${lv.topics.map(t=>`<li>${t}</li>`).join('')}</ul></div></section>`;
@@ -1284,7 +1328,7 @@ function render(){
       <button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button></footer>`;
     app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide('Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
     if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
-    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');
+    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');const fg=$('#freego');if(fg)fg.onclick=()=>go('livre');const hp=$('#hpok');if(hp)hp.onclick=()=>{store.set('hpOk',true);render();};
     $('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
@@ -1297,6 +1341,9 @@ function render(){
   } else if(state.view==='daily'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">5 minutos · no seu tom</span><h2>Aquecimento do dia</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewDaily($('#body'));
+  } else if(state.view==='livre'){
+    app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">Qualquer louvor</span><h2>Cante seu louvor</h2></div><div id="body"></div>`;
+    $('#back').onclick=()=>go('home');viewFree($('#body'));
   } else if(state.view==='voicetest'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">1 minuto</span><h2>Teste de voz</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewVoiceTest($('#body'));
@@ -1377,7 +1424,7 @@ function viewSustain(el,l,i){
     if(on){run+=dt;quiet=0;}else{quiet+=dt;if(quiet>.35){if(run>best){best=run;$('#best').textContent=`Seu recorde: ${best.toFixed(1).replace('.',',')}s`;}run=0;}}
     $('#t').textContent=run.toFixed(1).replace('.',',')+'s';$('#pg').style.width=Math.min(100,run/goal*100)+'%';
     if(!won&&listening)$('#hint').textContent=on?(run>goal*.6?(K()?'Quase lá, segura!':'Mantenha constante!'):(K()?'Isso, devagarinho...':'Bom, ar contínuo...')):(K()?'Respire fundo e solte "uuu"':'Respire e sustente um "uuu"');
-    if(!won&&run>=goal){won=true;markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Fôlego de campeão!':'Meta de sustentação alcançada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);}
+    if(!won&&run>=goal){won=true;listening=false;stopMic();$('#mic').textContent='🎤 Cantar de novo';markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Fôlego de campeão!':'Meta de sustentação alcançada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);}
   }
   cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
 }
@@ -1469,7 +1516,8 @@ function viewSeq(el,l,i,opts){
         if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');if(!opts)markDone(l.id);
           const sc=voiced>0?Math.round(100*(.6*inT/voiced+.4*Math.max(0,1-absSum/voiced/100))):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);if(!opts)saveScore(l.id,sc);
           hint.innerHTML=`<span class="win"><span class="big">★</span>${single?(K()?'Você acertou a nota!':'Nota sustentada com afinação!'):(K()?'Você cantou tudinho!':'Sequência completa e afinada!')}</span>`;
-          if(opts){stopMic();opts.onWin(sc);}else{$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}}
+          listening=false;stopMic();$('#mic').textContent='🎤 Cantar de novo';
+          if(opts){opts.onWin(sc);}else{$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}}
         else{show();trail=[];stepT=0;moodT=0;react('next');if(l.gap||(l.gapRepeats&&notes[step]===notes[step-1])){needGap=true;gapT=0;}}}
     }
     draw(cents);
@@ -1621,7 +1669,7 @@ function viewTheory(el,l,i){
 
 /* ---------- level exam: parts in sequence ---------- */
 function viewExam(el,l,i){
-  const lv=levelOf(l),prev=L.filter(x=>levelOf(x)===lv&&x.id!==l.id),missing=prev.filter(x=>!state.done[x.id]);
+  const lv=levelOf(l),prev=L.filter(x=>levelOf(x)===lv&&x.id!==l.id),missing=state.done[l.id]?[]:prev.filter(x=>!state.done[x.id]);
   const scores=[];let part=0;
   el.innerHTML=`<div class="panel">${tipBox(l)}
     <div><span class="label">Antes da prova</span><ul class="reqs">${prev.map(x=>`<li>${state.done[x.id]?'✅':'⬜'} ${M(x.title)}</li>`).join('')}</ul></div>
@@ -1722,6 +1770,86 @@ function viewVib(el,l,i,opts){
       if(opts){opts.onWin(sc);return;}markDone(l.id);saveScore(l.id,sc);$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
   }
   draw();
+  cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
+}
+
+
+/* ---------- "Cante seu louvor": the student plays any song elsewhere; the app only listens ---------- */
+function freeCard(){return `<section class="vcard"><div><span class="label">Qualquer louvor</span><b>Cante seu louvor</b><small>Toque o louvor que você quiser no YouTube ou Spotify e o app mede a sua afinação</small></div><button class="btn ghost" id="freego">Abrir</button></section>`;}
+function viewFree(el){
+  const tol=K()?35:25,hist=store.get('freeHist',[]);
+  el.innerHTML=`<div class="panel">
+    ${K()?guideHTML('Escolha um louvor que você ama! Um adulto pode colocar no celular ou no computador, e você canta junto com fone de ouvido.','happy'):''}
+    <ol class="steps">
+      <li><span class="n">1</span><span class="t"><h3>Fone de ouvido</h3><span class="muted">Coloque o fone. Assim o microfone escuta só a sua voz, e não a música.</span></span></li>
+      <li><span class="n">2</span><span class="t"><h3>Toque o seu louvor</h3><span class="muted">Abra o louvor no YouTube, Spotify ou outro app. Pode ser em outro aparelho ou em outra aba. O Voz Livre não toca nem guarda a música.</span></span></li>
+      <li><span class="n">3</span><span class="t"><h3>Cante junto</h3><span class="muted">Volte aqui, toque em Começar e cante. Ao terminar, toque em Parar para ver o resultado.</span></span></li></ol>
+    <div class="form"><label>Nome do louvor (opcional)<input type="text" id="song" maxlength="80" placeholder="Ex.: o louvor do culto de domingo"></label></div>
+    <div class="target"><span class="note" id="tn">–</span><small id="tc">${K()?'Sua nota aparece aqui':'Nota que você está cantando'}</small></div>
+    <canvas class="lane" id="cv" aria-label="Linha da sua voz sobre as notas"></canvas>
+    <div class="statrow"><div class="stat"><small>Tempo cantando</small><b id="st">0s</b></div><div class="stat"><small>Notas firmes</small><b id="sn">0</b></div><div class="stat"><small>Afinadas</small><b id="sp">–</b></div></div>
+    <p class="hint" id="hint">Toque em Começar quando a música começar</p>
+    <p class="err" id="warn" hidden>Parece que o microfone está ouvindo a música. Use fone de ouvido para o resultado sair certo.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="mic">🎤 Começar</button></div>
+    ${demoBox('Arraste para simular a voz.')}
+    <div id="result"></div>
+    ${hist.length?`<div><span class="label">Últimas vezes</span><ul class="reqs">${hist.slice(0,6).map(h=>`<li>${esc(h.d)} · ${esc(h.t||'Louvor')} · <b>${h.s}</b></li>`).join('')}</ul></div>`:''}
+    <p class="credit">O app não grava, não toca e não mostra a letra ou a melodia do louvor. Ele só ouve a sua voz, aqui no aparelho, para medir a afinação.</p></div>`;
+  const cv=$('#cv'),g=cv.getContext('2d');
+  let vc=null,raf=null,listening=false,demo=false,last=0,trail=[],seg=null,notes=[],voicedT=0,runT=0,startT=0,lo=null,hi=null,vwin=[];
+  const tNow=()=>performance.now()/1000;
+  function closeSeg(){if(seg&&seg.ms.length>4&&seg.t1-seg.t0>=.3){const a=[...seg.ms].sort((x,y)=>x-y),med=a[Math.floor(a.length/2)];
+      const mean=seg.ms.reduce((x,y)=>x+y,0)/seg.ms.length,sd=Math.sqrt(seg.ms.reduce((x,y)=>x+(y-mean)**2,0)/seg.ms.length);
+      const dev=(med-Math.round(med))*100;notes.push({m:med,dev,sd:sd*100,d:seg.t1-seg.t0});
+      lo=lo==null?Math.round(med):Math.min(lo,Math.round(med));hi=hi==null?Math.round(med):Math.max(hi,Math.round(med));}
+    seg=null;}
+  function stats(){const tot=notes.reduce((a,n)=>a+n.d,0);if(!tot)return null;
+    const inT=notes.filter(n=>Math.abs(n.dev)<=tol).reduce((a,n)=>a+n.d,0),st=notes.filter(n=>n.sd<=35).reduce((a,n)=>a+n.d,0);
+    const bias=notes.reduce((a,n)=>a+n.dev*n.d,0)/tot;
+    return {n:notes.length,pIn:inT/tot,pSt:st/tot,bias,score:Math.round(100*(.7*inT/tot+.3*st/tot))};}
+  function draw(){const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+    if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+    g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+    const pts=trail.filter(p=>p.m!=null).map(p=>p.m);if(vc==null)vc=K()?67:57;if(pts.length){const c=pts[pts.length-1];if(Math.abs(c-vc)>5)vc=Math.round(c);}
+    const minM=vc-7,maxM=vc+7,Y=m=>h-10-(m-minM)/(maxM-minM)*(h-20);
+    g.font='11px Nunito,sans-serif';
+    for(let m=minM;m<=maxM;m++){g.strokeStyle=css('--line');g.lineWidth=[1,3,6,8,10].includes(((m%12)+12)%12)?.5:1;g.beginPath();g.moveTo(34,Y(m));g.lineTo(w,Y(m));g.stroke();
+      if(![1,3,6,8,10].includes(((m%12)+12)%12)){g.fillStyle=css('--muted');g.fillText(nm(m),4,Y(m)+4);}}
+    const t1=tNow(),span=5;g.lineWidth=4;g.lineJoin='round';let prev=null;
+    trail.forEach(p=>{if(p.m==null){prev=null;return;}const x=34+(w-34)*(1-(t1-p.t)/span),y=Y(p.m);
+      if(prev){g.strokeStyle=p.ok?css('--ok'):css('--accent');g.beginPath();g.moveTo(prev[0],prev[1]);g.lineTo(x,y);g.stroke();}prev=[x,y];});
+  }
+  function loop(){raf=requestAnimationFrame(loop);const t=tNow(),dt=Math.min(.1,t-last);last=t;if(!listening){draw();return;}
+    let f=null;if(demo){f=midiToHz(60+(+$('#sim').value)/100+Math.floor((t-startT)/1.5)%5*2);}else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);f=detectPitch(mic.buf,actx.sampleRate);}
+    const m=f?hzToMidi(f):null;runT+=dt;
+    vwin.push({t,v:m!=null});while(vwin.length&&vwin[0].t<t-30)vwin.shift();
+    if(runT>30){const vr=vwin.filter(x=>x.v).length/vwin.length;$('#warn').hidden=vr<.95;}
+    let ok=false;
+    if(m!=null){voicedT+=dt;
+      if(seg&&Math.abs(m-seg.c)<=.5){seg.ms.push(m);seg.t1=t;seg.c=seg.c*.8+m*.2;}else{closeSeg();seg={c:m,ms:[m],t0:t,t1:t};}
+      const dev=(m-Math.round(m))*100;ok=seg.t1-seg.t0>=.3&&Math.abs(dev)<=tol;
+      $('#tn').textContent=nm(Math.round(m));$('#tc').textContent=`${dev>0?'+':''}${Math.round(dev)} cents · ${Math.round(f)} Hz`;
+    }else{closeSeg();$('#tn').textContent='–';}
+    trail.push({t,m,ok});while(trail.length&&trail[0].t<t-5)trail.shift();
+    const s=stats();$('#st').textContent=Math.round(voicedT)+'s';$('#sn').textContent=notes.length;$('#sp').textContent=s?Math.round(s.pIn*100)+'%':'–';
+    $('#hint').textContent=m==null?(K()?'Cante junto com o louvor!':'Cantando... toque em Parar ao terminar'):(ok?(K()?'Isso! Nota firme e afinada!':'Nota firme e afinada'):(K()?'Segura a nota...':'Ouvindo...'));
+    draw();}
+  function finish(){listening=false;stopMic();closeSeg();$('#mic').textContent='🎤 Começar de novo';const s=stats();
+    if(!s||voicedT<10){$('#result').innerHTML=`<p class="err">Cantou pouco tempo para medir. Cante pelo menos uma estrofe e o refrão.</p>`;$('#hint').textContent='';return;}
+    const fb=[];
+    fb.push(s.pIn>=.8?(K()?'Você cantou muito afinado!':'Afinação muito boa na maior parte das notas.'):s.pIn>=.6?(K()?'Muitas notas certinhas! Continue treinando.':'Boa afinação, com algumas notas fora do centro.'):(K()?'Vamos treinar mais um pouco as aulas de afinação!':'Várias notas fora do centro: volte às aulas de afinação e de "siga a melodia".'));
+    if(Math.abs(s.bias)>=12)fb.push(s.bias<0?(K()?'Sua voz ficou um pouquinho baixa: pense a nota mais para cima.':`Tendência a cantar um pouco abaixo da nota (${Math.round(s.bias)} cents em média). Mais apoio e pensar a nota "por cima" ajudam.`):(K()?'Sua voz ficou um pouquinho alta: relaxe a voz.':`Tendência a cantar um pouco acima da nota (+${Math.round(s.bias)} cents em média). Relaxe a garganta e evite empurrar o ar.`));
+    fb.push(s.pSt>=.7?(K()?'As notas compridas ficaram firmes.':'Notas longas estáveis.'):(K()?'Tente segurar as notas compridas bem paradinhas.':'As notas longas oscilaram bastante: treine a aula de nota longa e o apoio.'));
+    if(lo!=null)fb.push(`${K()?'Você cantou de':'Extensão usada:'} ${nmo(lo)} ${K()?'até':'a'} ${nmo(hi)}.`);
+    const title=$('#song').value.trim().slice(0,80);
+    hist.unshift({d:today(),t:title,s:s.score});store.set('freeHist',hist.slice(0,20));
+    $('#result').innerHTML=`${scoreHTML(s.score,'livre')}<ul class="reqs">${fb.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+    $('#hint').textContent='';saveScore('livre',s.score);bumpStreak();if(K())guide(fb[0],'happy','force');}
+  $('#mic').onclick=async()=>{ctx();if(listening){finish();return;}
+    if(!await startMic()){demo=true;$('#demo').hidden=false;}
+    notes=[];seg=null;voicedT=0;runT=0;lo=hi=null;vwin=[];trail=[];$('#result').innerHTML='';$('#warn').hidden=true;
+    listening=true;startT=tNow();last=startT;$('#mic').textContent='■ Parar';if(!raf)loop();};
+  draw();if(K())wireGuide();
   cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
 }
 
@@ -1911,13 +2039,14 @@ function viewVoiceTest(el){
 
 /* ---------- follow the melody (in time, with score) ---------- */
 function viewFollow(el,l,i,opts){
+  l={...l,acc:l.acc||'same'};
   const base=baseNote(l),beat=(K()?.6:.5)*(l.tempo||1),tol=K()?50:35,pass=l.pass?M(l.pass):(K()?50:60);
   let t=0;const ev=l.steps.map((s,k)=>{const d=(l.beats?l.beats[k]:1)*beat;const e={m:base+s,t0:t,t1:t+d*.9,hit:0,tot:0};t+=d;return e;});
   let acc=[];if(l.acc){const as=l.acc==='same'?l.steps:l.acc.steps,ab=l.acc==='same'?l.beats:l.acc.beats;let ta=0;acc=as.map((s,k)=>{const d=(ab?ab[k]:1)*beat;const e={m:base+s,t0:ta,t1:ta+d*.9};ta+=d;return e;});}
   const total=t,ms=ev.map(e=>e.m).concat(acc.map(e=>e.m)),minM=Math.min(...ms)-2,maxM=Math.max(...ms)+2;let oscs=[];
   el.innerHTML=`<div class="panel">${tipBox(l)}
     <canvas class="lane" id="cv" aria-label="Notas da melodia passando e a linha da sua voz"></canvas>
-    ${l.acc?`<label class="muted" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:.92rem"><input type="checkbox" id="accOn" checked> Tocar a ${l.accLabel||'melodia'} junto (use fone de ouvido)</label>`:''}
+    ${l.acc?`<label class="muted" style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:.92rem"><input type="checkbox" id="accOn" checked> 🎧 Tocar a ${l.accLabel||'melodia'} junto enquanto eu canto (use fone de ouvido)</label>`:''}
     ${l.lyrics?`<p class="lyric" id="lyr">${l.lyrics.map((x,k)=>x?`<span data-k="${k}">${x.replace(/-$/,'')}</span>${x.endsWith('-')?'':' '}`:'').join('')}</p>`:''}
     <div class="row" style="justify-content:center"><button class="btn ghost" id="play">▶ Ouvir</button><button class="btn" id="mic">🎤 Cantar junto</button></div>
     <p class="hint" id="hint">${K()?'Toque em Ouvir para conhecer a melodia':'Ouça a melodia uma vez e depois cante junto'}</p>
