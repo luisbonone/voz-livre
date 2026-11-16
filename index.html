@@ -312,6 +312,11 @@ select,input,textarea{max-width:100%;box-sizing:border-box}
  table.students td:not(:first-child)::before{content:attr(data-l);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:left}
 }
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;background:rgba(20,30,40,.92);color:#fff;padding:10px 16px;border-radius:999px;font-size:.9rem;font-weight:600;max-width:90vw;text-align:center}
+.manage{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.manage .row{flex-wrap:wrap}
+.btn.danger{background:var(--coral);color:#fff;border-color:var(--coral)}.btn.ghost.danger{background:transparent;color:var(--coral);border-color:var(--coral)}
+.confbox{margin-top:10px;padding:12px 14px;border:2px solid var(--coral);border-radius:14px;background:var(--surface)}.confbox p{margin:0 0 10px}
+.offlist .offrow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--line);padding:10px 4px;color:inherit;font:inherit;cursor:pointer;opacity:.75}
+.offlist .offrow.sel,.offlist .offrow:hover{opacity:1;background:var(--band)}.offlist .offrow small{color:var(--muted)}
 </style>
 
 <div class="app" id="app"></div>
@@ -1234,7 +1239,7 @@ async function initCloud(){
   if(['home','conta','idade'].includes(state.view)||needBirth()||needGuardian())render();}
 /* ----- student recordings for the teacher ----- */
 const lessonName=id=>{const k=idx(id);return k>=0?M(L[k].title):(id||'Gravação livre');};
-function canRecord(){return cloudOn()&&cloud.user&&cloud.profile&&cloud.profile.role!=='teacher'&&cloud.cls&&typeof MediaRecorder!=='undefined';}
+function canRecord(){return cloudOn()&&cloud.user&&cloud.profile&&cloud.profile.role!=='teacher'&&!cloud.profile.deactivated_at&&cloud.cls&&typeof MediaRecorder!=='undefined';}
 function recorderHTML(isExam){if(!canRecord())return '';
   return `<div class="panel rec" id="recbox"><span class="label">🎙️ ${isExam?'Gravação da prova':'Mostre para o professor'}</span>
     <p class="muted">${isExam?'Grave você cantando o louvor da prova para o professor ouvir e aprovar.':'Grave um trecho cantando este exercício e envie para o seu professor ouvir e comentar.'}</p>
@@ -1278,8 +1283,9 @@ function homeCloudCards(){
     <div class="row"><button class="btn ghost" id="recseen" data-id="${r.id}">Entendi</button></div></section>`;}
   if(unread.length)h+=`<section class="msgcard"><span class="label">📩 Recado do seu professor${unread.length>1?` (${unread.length})`:''}</span><p>${esc(unread[unread.length-1].body)}</p>
     <div class="row"><button class="btn ghost" id="msgread" data-id="${unread[unread.length-1].id}">Entendi</button></div></section>`;
-  const hw=hwList();
-  if(hw.length){const hd=cloud.cls.homework,nd=hw.filter(id=>state.done[id]).length;
+  const hw=(cloud.profile&&cloud.profile.deactivated_at)?[]:hwList();
+  if(cloud.cls&&cloud.profile&&cloud.profile.deactivated_at&&cloud.profile.role!=='teacher')h=`<section class="msgcard"><span class="label">⏸️ ${esc(cloud.cls.name)}</span><p>A sua participação nesta turma está pausada pelo professor. O seu progresso está guardado: quando ele reativar, você continua de onde parou.</p></section>`+h;
+  else if(hw.length){const hd=cloud.cls.homework,nd=hw.filter(id=>state.done[id]).length;
     h=`<section class="panel hwcard"><div><span class="label">📚 Tarefa da semana · ${esc(cloud.cls.name)}</span><h3>${nd===hw.length?'Tarefa feita! ✓':`Treine estas aulas${hd.due?` até ${new Date(hd.due+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'numeric'})}`:''}`}</h3>
       ${hd.note?`<p>"${esc(hd.note)}"</p>`:''}</div>
       <div class="path">${hw.map(id=>{const l=L[idx(id)];return `<button class="node ${state.done[id]?'done':'open'}" data-go="${id}"><span class="dot">${state.done[id]?'★':'▶'}</span><span class="txt"><b>${M(l.title)}</b><small>${M(l.sub)}${state.scores[id]!=null?` · Melhor nota: ${state.scores[id]}`:''}</small></span></button>`}).join('')}</div>
@@ -1483,7 +1489,8 @@ function viewTeacher(el){
   if(!prof.loaded){el.innerHTML=`<div class="panel"><p class="muted">Carregando seus alunos...</p></div>`;
     (async()=>{try{await profLoadClasses();await profLoadStudents();prof.loaded=true;}catch(e){prof.loaded=true;}if(state.view==='prof')viewTeacher(el);})();return;}
   const c=prof.classes.find(x=>x.id===prof.sel);
-  const rows=prof.students.map(st=>({st,...studentInfo(st)})).sort((a,b)=>a.rank-b.rank||(a.st.full_name||'').localeCompare(b.st.full_name||''));
+  const allRows=prof.students.map(st=>({st,...studentInfo(st)})).sort((a,b)=>a.rank-b.rank||(a.st.full_name||'').localeCompare(b.st.full_name||''));
+  const rows=allRows.filter(r=>!r.st.deactivated_at),offRows=allRows.filter(r=>r.st.deactivated_at).sort((a,b)=>(a.st.full_name||'').localeCompare(b.st.full_name||''));
   const active=rows.filter(r=>r.days!=null&&r.days<7).length,attention=rows.filter(r=>r.rank<=1).length,pendingAll=prof.recs.filter(x=>!x.reviewed_at).length;
   el.innerHTML=`<div class="classchips">${prof.classes.map(x=>`<button data-c="${x.id}" aria-pressed="${x.id===prof.sel}">${esc(x.name)}</button>`).join('')}
       <form id="ncf" class="row"><input type="text" id="ncn" placeholder="Nome da nova turma" maxlength="60" style="font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink)"><button class="btn ghost" type="submit">+ Criar turma</button></form></div>
@@ -1500,7 +1507,9 @@ function viewTeacher(el){
         <td><span class="chip ${r.cls}">${r.status}</span></td><td>${studentLevel(r.pr.done)} · ${LEVELS[studentLevel(r.pr.done)-1].title}</td>
         <td><span class="minibar"><b style="width:${Math.round(r.done/L.length*100)}%"></b></span>${r.done}/${L.length}</td>
         <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${(hl=>hl.length?`${hl.filter(id=>(r.pr.done||{})[id]).length}/${hl.length}`:'–')(c.homework&&Array.isArray(c.homework.lessons)?c.homework.lessons:[])}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
-    </tbody></table></div>`:`<div class="panel"><p class="muted">Nenhum aluno nesta turma ainda. Passe o código <b>${esc(c.code)}</b> para eles.</p></div>`}
+    </tbody></table></div>`:`<div class="panel"><p class="muted">${offRows.length?'Nenhum aluno ativo nesta turma.':`Nenhum aluno nesta turma ainda. Passe o código <b>${esc(c.code)}</b> para eles.`}</p></div>`}
+    ${offRows.length?`<div class="panel offlist"><span class="label">⏸️ Alunos desativados (${offRows.length})</span><p class="muted" style="font-size:.9rem">O progresso deles fica guardado. Toque no nome para reativar ou remover.</p>
+      ${offRows.map(r=>`<button class="offrow ${prof.detail===r.st.id?'sel':''}" data-s="${r.st.id}"><b>${esc(r.st.full_name||r.st.email)}</b><small>desde ${new Date(r.st.deactivated_at).toLocaleDateString('pt-BR')} · ${r.done}/${L.length} aulas</small></button>`).join('')}</div>`:''}
     <div id="det"></div>`}`}`;
   const ta=$('#tab-a');if(ta){ta.onclick=()=>{prof.tab='alunos';viewTeacher(el);};$('#tab-c').onclick=()=>{prof.tab='aulas';viewTeacher(el);};}
   if(c&&prof.tab==='aulas'){viewCourse($('#coursebox'),c);}
@@ -1510,8 +1519,8 @@ function viewTeacher(el){
     const row=Array.isArray(r.data)?r.data[0]:r.data;prof.sel=row&&row.id;await profLoadClasses();await profLoadStudents();viewTeacher(el);};
   const cp=$('#copy');if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(c.code);cp.textContent='Copiado!';}catch(e){const r=document.createRange();r.selectNodeContents($('#ccode'));const s2=getSelection();s2.removeAllRanges();s2.addRange(r);cp.textContent='Selecionado';}};
   const rl=$('#reload');if(rl)rl.onclick=async()=>{rl.disabled=true;await profLoadStudents();viewTeacher(el);};
-  el.querySelectorAll('tr[data-s]').forEach(tr=>tr.onclick=()=>{prof.detail=tr.dataset.s;viewTeacher(el);const d=$('#det');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});});
-  if(prof.detail){const r=rows.find(x=>x.st.id===prof.detail);if(r)drawDetail($('#det'),r);}
+  el.querySelectorAll('tr[data-s],button.offrow[data-s]').forEach(tr=>tr.onclick=()=>{prof.detail=tr.dataset.s;viewTeacher(el);const d=$('#det');if(d)d.scrollIntoView({behavior:'smooth',block:'start'});});
+  if(prof.detail){const r=allRows.find(x=>x.st.id===prof.detail);if(r)drawDetail($('#det'),r);}
 }
 function drawDetail(el,r){
   const st=r.st,pr=r.pr,sc=pr.scores||{},dn=pr.done||{},msgs=prof.msgs.filter(m=>m.student_id===st.id);
@@ -1545,6 +1554,20 @@ function drawDetail(el,r){
     li.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{const upd={teacher_comment:li.querySelector('textarea').value.trim()||null,approved:b.dataset.ok==='1',reviewed_at:new Date().toISOString()};
       const r3=await cloud.sb.from('recordings').update(upd).eq('id',rec.id);if(r3.error){li.querySelector('.err').textContent=PT_ERR(r3.error.message);return;}
       Object.assign(rec,upd);viewTeacher(document.querySelector('#body'));});});
+  const nm=esc(st.full_name||st.email),off=!!st.deactivated_at;
+  el.querySelector('.panel').insertAdjacentHTML('beforeend',`<div class="manage"><span class="label">Gerenciar aluno</span>
+    ${off?`<p class="muted">Desativado desde ${new Date(st.deactivated_at).toLocaleDateString('pt-BR')}. O progresso está guardado.</p>`:''}
+    <div class="row"><button class="btn ghost" id="stoff">${off?'▶ Reativar aluno':'⏸️ Desativar aluno'}</button><button class="btn ghost danger" id="stdel">🗑️ Remover da turma</button></div>
+    <div id="stconf" hidden></div><p class="err" id="sterr"></p></div>`);
+  const fixMsg=m=>/set_student_active|remove_student|function/i.test(m)?'Falta rodar o script schema_v5_alunos.sql no Supabase.':PT_ERR(m);
+  const conf=(html,yes,fn)=>{const b=$('#stconf');b.hidden=false;b.innerHTML=`<div class="confbox"><p>${html}</p><div class="row"><button class="btn ${yes.danger?'danger':''}" id="cfy">${yes.t}</button><button class="btn ghost" id="cfn">Cancelar</button></div></div>`;
+    $('#cfn').onclick=()=>{b.hidden=true;b.innerHTML='';};$('#cfy').onclick=async()=>{$('#cfy').disabled=true;$('#sterr').textContent='';const er=await fn();if(er){$('#sterr').textContent=fixMsg(er.message);$('#cfy').disabled=false;}};
+    b.scrollIntoView({behavior:'smooth',block:'center'});};
+  $('#stoff').onclick=()=>{if(off){(async()=>{const {error}=await cloud.sb.rpc('set_student_active',{student:st.id,active:true});if(error){$('#sterr').textContent=fixMsg(error.message);return;}st.deactivated_at=null;viewTeacher(document.querySelector('#body'));})();return;}
+    conf(`Desativar <b>${nm}</b>? Sai da lista de alunos ativos e deixa de receber as tarefas da turma. Todo o progresso fica guardado, e você pode reativar quando voltar.`,{t:'Sim, desativar'},async()=>{
+      const {error}=await cloud.sb.rpc('set_student_active',{student:st.id,active:false});if(error)return error;st.deactivated_at=new Date().toISOString();viewTeacher(document.querySelector('#body'));});};
+  $('#stdel').onclick=()=>conf(`Remover <b>${nm}</b> da turma? Deixa de aparecer para você e perde o acesso às aulas liberadas e às tarefas. Para voltar, precisa entrar de novo com o código da turma. <b>Se houver chance de voltar, prefira desativar.</b>`,{t:'Sim, remover da turma',danger:true},async()=>{
+      const {error}=await cloud.sb.rpc('remove_student',{student:st.id});if(error)return error;prof.students=prof.students.filter(x=>x.id!==st.id);prof.detail=null;viewTeacher(document.querySelector('#body'));});
   $('#bandsel').onchange=async ev=>{const v=ev.target.value||null,m=$('#bandmsg');m.className='muted';m.textContent='Salvando...';
     const {error}=await cloud.sb.rpc('set_student_band',{student:st.id,band:v});
     if(error){m.className='err';m.textContent=/set_student_band|function/i.test(error.message)?'Falta rodar o script schema_v4_faixas.sql no Supabase.':PT_ERR(error.message);return;}
