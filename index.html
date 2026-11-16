@@ -279,6 +279,7 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .bubble{position:relative;flex:1;min-width:0;background:var(--surface);border:2px solid var(--accent);border-radius:18px 18px 18px 6px;padding:12px 14px;font-weight:700;font-size:1rem}
 .bubble small{display:block;font-family:var(--display);color:var(--accent);font-size:.9rem;line-height:1.1;margin-bottom:2px}
 .bubble .spk{position:absolute;top:6px;right:8px;border:0;background:transparent;font-size:1rem;padding:2px}
+.bubble #dvoice{right:34px;font-size:.9rem}.bubble small{display:block;padding-right:56px}
 .bubble p{padding-right:22px}
 .davi .eye{animation:blink 4s infinite;transform-origin:center;transform-box:fill-box}
 .davi.talk .beak-low{animation:talk .22s ease-in-out infinite alternate;transform-origin:top;transform-box:fill-box}
@@ -1066,24 +1067,31 @@ function davi(mood){
 }
 function guideHTML(text,mood){
   return `<div class="guide" id="guide">${davi(mood)}<div class="bubble"><small>Davi, o canarinho</small><p id="gtext">${text}</p>
-    <button class="spk" id="spk" aria-label="${voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi'}">${voiceOn?'🔊':'🔇'}</button></div></div>`;
+    <button class="spk" id="spk" aria-label="${voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi'}">${voiceOn?'🔊':'🔇'}</button><button class="spk" id="dvoice" aria-label="Trocar a voz do Davi" title="Trocar a voz do Davi">🔁</button></div></div>`;
 }
 let lastSay='',lastMood='';
 function wireGuide(){const b=$('#spk');if(b)b.onclick=()=>{voiceOn=!voiceOn;store.set('voiceOn',voiceOn);
   b.textContent=voiceOn?'🔊':'🔇';b.setAttribute('aria-label',voiceOn?'Desligar a voz do Davi':'Ligar a voz do Davi');
-  if(voiceOn)speak($('#gtext').textContent,true);else stopSpeak();};}
+  if(voiceOn)speak($('#gtext').textContent,true);else stopSpeak();};
+  const dv=$('#dvoice');if(dv)dv.onclick=()=>{const n=nextDaviVoice();if(!voiceOn){voiceOn=true;store.set('voiceOn',true);if(b){b.textContent='🔊';}}speak(n>1?'Oi! Eu sou o Davi. Gostou desta voz?':'Oi! Eu sou o Davi. Este celular só tem esta voz.',true);};}
 // update the bubble; speak only when the mic is off (so Davi isn't heard as the student) unless forced
 function guide(text,mood,doSpeak){
   const g=$('#guide');if(!g)return;
   if(mood!==lastMood){g.querySelector('.davi').outerHTML=davi(mood);lastMood=mood;}
   if(text!==lastSay){$('#gtext').textContent=text;lastSay=text;if(doSpeak)speak(text,doSpeak==='force');}
 }
-function pickVoice(){try{const vs=speechSynthesis.getVoices();return vs.find(v=>/pt[-_]BR/i.test(v.lang))||vs.find(v=>/^pt/i.test(v.lang));}catch(e){return null}}
+const MALE_V=/(\bmale\b|masculin|homem|daniel|ant[oô]nio|felipe|f[aá]bio|ricardo|thiago|donato|j[uú]lio|humberto|val[eé]rio|nicolau|macerio|x-ptd|x-pte|ptd-|pte-)/i,FEM_V=/(female|google|feminin|mulher|maria|francisca|luciana|thalita|vit[oó]ria|leila|let[ií]cia|raquel|manuela|brenda|elza|giovanna|yara|x-afs|x-ptc|afs-|ptc-)/i;
+const vGender=v=>v?(FEM_V.test(v.name+' '+v.voiceURI)?'f':(MALE_V.test(v.name+' '+v.voiceURI)?'m':'?')):'?';
+function ptVoices(){try{const vs=speechSynthesis.getVoices();const br=vs.filter(v=>/pt[-_]BR/i.test(v.lang));return br.length?br:vs.filter(v=>/^pt/i.test(v.lang));}catch(e){return []}}
+function pickVoice(){const vs=ptVoices();if(!vs.length)return null;const saved=store.get('daviVoice',null);
+  return vs.find(v=>v.voiceURI===saved)||vs.find(v=>vGender(v)==='m')||vs.find(v=>vGender(v)==='?')||vs[0];}
+function daviPitch(v){const g=vGender(v);return g==='m'?1.35:(g==='f'?.8:1);}
+function nextDaviVoice(){const vs=ptVoices();if(!vs.length)return 0;const cur=pickVoice();const k=(vs.indexOf(cur)+1)%vs.length;store.set('daviVoice',vs[k].voiceURI);return vs.length;}
 function speak(text,force){
   if(!K()||!voiceOn||!('speechSynthesis' in window))return;
   if(mic&&!force)return;
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text.replace(/[★⬆⬇🎤▶]/g,''));
-    u.lang='pt-BR';u.rate=1.05;u.pitch=1.6;const v=pickVoice();if(v)u.voice=v;
+    u.lang='pt-BR';u.rate=1.05;const v=pickVoice();if(v)u.voice=v;u.pitch=daviPitch(v);
     const d=()=>document.querySelector('#guide .davi');
     u.onstart=()=>d()&&d().classList.add('talk');u.onend=u.onerror=()=>d()&&d().classList.remove('talk');
     speechSynthesis.speak(u);}catch(e){}
@@ -1316,9 +1324,11 @@ const SYLS={
  a:{s:'a',kid:'Boca aberta e queixo solto, sem mexer o queixo entre as notas.',adult:'Vogal aberta e ligada, com o queixo parado. Assim a nota muda pelo ar e pelas pregas, não pela boca.'},
  o:{s:'ó',kid:'Mantenha a mesma boca de "ó" em todas as notas.',adult:'Mantenha a vogal "ó" igual em todas as notas do melisma, sem aspirar entre elas.'},
  nome:{s:'o nome da nota (Dó, Mi, Sol)',kid:'Dizer o nome ajuda a lembrar onde a nota mora.',adult:'Cantar o nome da nota liga o som à teoria e ajuda a achar a nota no acorde.'},
+ ia:{s:'iá',kid:'O "i" ajuda a voz a subir leve, e o "á" abre a boca lá no alto.',adult:'O "i" leva a voz para a frente e facilita o agudo; abrir para "á" no topo evita apertar a garganta.'},
+ oo:{s:'ô',kid:'Boca redondinha, como se tivesse um ovo dentro. Desça sem apertar.',adult:'A vogal "ô" arredondada dá espaço e corpo ao grave sem empurrar a laringe para baixo.'},
  letra:{s:'a letra do louvor',kid:'Se ficar difícil, cante primeiro em "lu" e depois coloque as palavras.',adult:'Se a letra atrapalhar a afinação, cante a melodia primeiro em "lu" e depois coloque as palavras, articulando bem as consoantes.'}};
-const SYL_ID={first:'lu',sustain:'u',scale3:'lu',scale5:'lu',updown:'lu',leaps:'lu',long:'u',follow1:'la',dyn:'ma',chest:'ma2',head:'u',passage:'u',range_up:'lu',range_low:'ma2',octave:'lu',vib_osc:'u',vibrato:'a',agil1:'a',agil2:'a',agil3:'a',glo1:'o',belt:'ma',messa:'ma',hold_note:'u',chordstart:'nome'};
-function sylKey(l){if(!l||l.id==='vowels')return null;if(l.syl)return l.syl;if(SYL_ID[l.id])return SYL_ID[l.id];if(l.lyrics)return 'letra';
+const SYL_ID={first:'u',sustain:'u',scale3:'lu',scale5:'lu',updown:'lu',leaps:'lu',long:'u',follow1:'la',dyn:'ma',chest:'ma2',head:'u',passage:'u',range_up:'ia',range_low:'oo',octave:'lu',vib_osc:'u',vibrato:{kid:'oo',adult:'a'},agil1:'a',agil2:'a',agil3:'a',glo1:'o',belt:'ma',messa:'ma',hold_note:'u',chordstart:'nome'};
+function sylKey(l){if(!l||l.id==='vowels')return null;if(l.syl)return l.syl;if(SYL_ID[l.id])return M(SYL_ID[l.id]);if(l.lyrics)return 'letra';
   if(l.type==='exam')return 'lu';return({seq:'lu',follow:'la',sustain:'u',dyn:'ma',vib:'a'})[l.type]||null;}
 function sylHTML(l){const k=sylKey(l);if(!k)return '';const y=SYLS[k],w=(k==='nome'||k==='letra')?y.s:`em "${y.s}"`;
   return `<div class="syl"><span>🗣️</span><p><b>${l.type==='exam'?'Nas partes cantadas, cante':'Cante'} ${w}</b><br><small>${K()?y.kid:y.adult}</small></p></div>`;}
