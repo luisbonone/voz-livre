@@ -1978,12 +1978,12 @@ function viewDaily(el){
   el.innerHTML=`<div class="panel">${K()?guideHTML('Vamos aquecer a voz juntos! Siga o som e faça igual.','happy'):'<div class="tip"><span>💡</span><p><b>Dica do professor:</b> Faça o aquecimento todos os dias, mesmo quando não for cantar muito. Ele já está no tom da sua voz.</p></div>'}
     <ol class="steps">${plan.map((w,k)=>`<li><span class="n">${k+1}</span><span class="t"><h3>${w.t}</h3><span class="muted">${w.d}</span></span></li>`).join('')}</ol>
     <div class="ctlbar"><div class="timer" id="tm">${(t=>Math.floor(t/60)+":"+String(t%60).padStart(2,"0"))(plan.reduce((x,w)=>x+w.sec,0))}</div>
-    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="pause" hidden>⏸ Pausar</button><button class="btn ghost" id="skip">Pular passo</button></div></div>
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="pause" hidden>⏸ Pausar</button><button class="btn ghost" id="restart" hidden>↺ Reiniciar</button><button class="btn ghost" id="skip">Pular passo</button></div></div>
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   if(K()){wireGuide();lastSay='x';lastMood='happy';}
   const items=[...el.querySelectorAll('.steps li')];let k=-1,left=0,iv=null,tos=[],paused=false;
   const saved=store.get('dailyResume',null),canResume=saved&&saved.day===today()&&saved.k>=0&&saved.k<plan.length;
-  if(canResume){$('#go').textContent=`Continuar do passo ${saved.k+1}`;items.forEach((x,j)=>{if(j<saved.k)x.className='ok';});}
+  if(canResume){$('#go').textContent=`Continuar do passo ${saved.k+1}`;$('#restart').hidden=false;items.forEach((x,j)=>{if(j<saved.k)x.className='ok';});}
   const focusStep=()=>{if(items[k])items[k].scrollIntoView({behavior:'smooth',block:'center'});};
   const remember=()=>store.set('dailyResume',k>=0&&k<plan.length?{day:today(),k,left}:null);
   const tick=()=>{clearInterval(iv);iv=setInterval(()=>{left--;if(left<=0)next();if(k<plan.length){fmt();remember();}},1000);};
@@ -1995,14 +1995,17 @@ function viewDaily(el){
       $('#go').disabled=false;$('#go').hidden=false;$('#go').textContent='Repetir';$('#after').innerHTML='<button class="btn" id="tohome">Ir para as aulas</button>';$('#tohome').onclick=()=>go('home');if(K()){confetti();guide('Voz quentinha! Agora vamos para as aulas!','cheer','force');}return;}
     items[k].classList.add('on');left=plan[k].sec;remember();focusStep();if(K())guide(plan[k].d,'happy',true);sound(plan[k]);}
   function fmt(){let rest=left;for(let j=k+1;j<plan.length;j++)rest+=plan[j].sec;$('#tm').textContent=Math.floor(rest/60)+':'+String(rest%60).padStart(2,'0');}
-  function setPaused(v){paused=v;$('#pause').textContent=v?'▶ Continuar':'⏸ Pausar';
+  function setPaused(v){paused=v;$('#pause').textContent=v?'▶ Continuar':'⏸ Pausar';$('#restart').hidden=!v;
     if(v){clearInterval(iv);clearT();stopTones();try{actx&&actx.suspend();}catch(e){}if(K())guide('Pausado. Quando quiser, toque em Continuar.','idle',true);}
     else{try{actx&&actx.resume();}catch(e){}focusStep();sound(plan[k]);tick();}}
   $('#go').onclick=()=>{ctx();const st=$('#go').textContent.startsWith('Continuar')&&canResume&&k<0?saved:null;
-    items.forEach(x=>x.className='');$('#go').disabled=true;$('#go').hidden=true;$('#pause').hidden=false;paused=false;$('#pause').textContent='⏸ Pausar';
+    items.forEach(x=>x.className='');$('#go').disabled=true;$('#go').hidden=true;$('#restart').hidden=true;$('#pause').hidden=false;paused=false;$('#pause').textContent='⏸ Pausar';
     if(st){items.forEach((x,j)=>{if(j<st.k)x.className='ok';});k=st.k-1;next();left=Math.max(3,st.left);}else{k=-1;next();}
     fmt();tick();};
   $('#pause').onclick=()=>{if(k>=0&&k<plan.length)setPaused(!paused);};
+  $('#restart').onclick=()=>{ctx();clearInterval(iv);clearT();stopTones();try{actx&&actx.resume();}catch(e){}store.set('dailyResume',null);
+    items.forEach(x=>x.className='');$('#go').disabled=true;$('#go').hidden=true;$('#restart').hidden=true;$('#pause').hidden=false;paused=false;$('#pause').textContent='⏸ Pausar';
+    k=-1;next();fmt();tick();};
   $('#skip').onclick=()=>{if(k>=0&&k<plan.length){next();if(k<plan.length){fmt();if(paused)setPaused(false);}}};
   cleanup=()=>{clearInterval(iv);clearT();};
 }
