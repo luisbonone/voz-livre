@@ -895,8 +895,12 @@ function isTeacher(){return typeof cloud!=='undefined'&&cloud.profile&&cloud.pro
 function classGuided(){return typeof cloud!=='undefined'&&cloud.user&&cloud.cls&&cloud.cls.guided===true&&!isTeacher();}
 function hwList(){const h=classGuided()||(typeof cloud!=='undefined'&&cloud.cls&&!isTeacher())?cloud.cls.homework:null;return h&&Array.isArray(h.lessons)?h.lessons.filter(id=>idx(id)>=0):[];}
 function released(id){return !!(cloud.cls&&Array.isArray(cloud.cls.released)&&cloud.cls.released.includes(id))||hwList().includes(id);}
-const isUnlocked=i=>{if(state.unlockAll||isTeacher())return true;
-  if(classGuided())return !!state.done[L[i].id]||released(L[i].id);
+function aheadOK(i){const r=cloud.cls.released;if(!Array.isArray(r)||!r.includes('@ahead'))return false;
+  const ul=L.filter(x=>x.unit===L[i].unit);if(!ul.some(x=>r.includes(x.id)))return false;const j=ul.indexOf(L[i]);return j===0||!!state.done[ul[j-1].id];}
+const testUnlock=()=>state.unlockAll&&!classGuided();
+const isUnlocked=i=>{if(i<0||!L[i])return false;if(isTeacher())return true;
+  if(classGuided())return !!state.done[L[i].id]||released(L[i].id)||aheadOK(i);
+  if(state.unlockAll)return true;
   return i===0||!!state.done[L[i-1].id]||L.slice(i).some(x=>state.done[x.id]);};
 
 function saveScore(id,v){if(!(state.scores[id]>=v)){state.scores[id]=v;store.set('scores',state.scores);}}
@@ -961,10 +965,10 @@ const demoBox=(extra)=>`<div class="demo" id="demo" hidden><span class="label">M
   <input type="range" id="sim" min="-150" max="150" value="-120" aria-label="Simular altura da voz"></div>`;
 function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim()}
 function nextBtn(i){
-  const n=L[i+1];
+  const n=L[i+1]&&isUnlocked(i+1)?L[i+1]:null;
   return n?`<button class="btn" id="nextL">Próxima aula: ${M(n.title)} →</button>`:`<button class="btn" id="nextL">Voltar à trilha</button>`;
 }
-function wireNext(i){const b=$('#nextL');if(b)b.onclick=()=>go(L[i+1]?L[i+1].id:'home');}
+function wireNext(i){const b=$('#nextL');if(b)b.onclick=()=>go(L[i+1]&&isUnlocked(i+1)?L[i+1].id:'home');}
 
 /* ---------- Canarinho Davi: the kids' guide ---------- */
 let voiceOn=store.get('voiceOn',true);
@@ -1244,7 +1248,8 @@ function viewCourse(el,c){
     el.innerHTML=`<div class="panel">
       <div><span class="label">Como a turma ${esc(c.name)} avança</span>
         <div class="seg" role="group" style="margin-top:6px"><button id="g-on" aria-pressed="${c.guided!==false}">Eu libero as aulas</button><button id="g-off" aria-pressed="${c.guided===false}">Cada aluno segue sozinho</button></div>
-        <p class="muted" style="font-size:.9rem;margin-top:6px">${c.guided!==false?'Os alunos só abrem as aulas que você liberar (e as que já fizeram). Libere conforme o que você deu em sala.':'Os alunos seguem a trilha no próprio ritmo. A tarefa da semana continua aparecendo para eles.'}</p></div>
+        <p class="muted" style="font-size:.9rem;margin-top:6px">${c.guided!==false?'Os alunos só abrem as aulas que você liberar (e as que já fizeram). Libere conforme o que você deu em sala.':'Os alunos seguem a trilha no próprio ritmo. A tarefa da semana continua aparecendo para eles.'}</p>
+        ${c.guided!==false?`<label class="check" style="display:flex;gap:8px;align-items:flex-start;margin-top:6px;font-weight:700"><input type="checkbox" id="ahead" ${rel.has('@ahead')?'checked':''}> <span>Deixar o aluno avançar sozinho dentro das unidades que eu liberei<br><small class="muted" style="font-weight:600">Desligado: ele faz só as aulas marcadas. Ligado: numa unidade com alguma aula liberada, ele pode seguir para as próximas aulas daquela unidade, uma de cada vez, mas nunca para outra unidade.</small></span></label>`:''}</div>
       <p id="cstat" class="${stat[0]}">${esc(stat[1])}</p></div>
     <div class="panel"><span class="label">📚 Tarefa da semana</span>
       ${hw.length?`<ul class="reqs">${hw.map(id=>`<li>• ${esc(L[idx(id)]?L[idx(id)].title.adult:id)} <button class="linkbtn" data-hwdel="${id}">remover</button></li>`).join('')}</ul>`:'<p class="muted">Nenhuma aula na tarefa. Use "+ Tarefa" nas aulas abaixo.</p>'}
@@ -1252,7 +1257,7 @@ function viewCourse(el,c){
       <label>Até quando<input type="date" id="hwdue" value="${esc(hd.due||'')}" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)"></label></div>
       <div class="row"><button class="btn" id="hwsave">Salvar tarefa</button><button class="btn ghost" id="hwclear">Limpar tarefa</button></div>
       <p class="muted" style="font-size:.88rem">As aulas da tarefa ficam liberadas para os alunos e aparecem no topo da tela inicial deles.</p></div>
-    <div class="panel"><span class="label">Curso · ${rel.size} aulas liberadas</span>
+    <div class="panel"><span class="label">Curso · ${[...rel].filter(x=>x[0]!=='@').length} aulas liberadas</span>
       <p class="muted" style="font-size:.9rem">Toque em "Roteiro" para ver como dar a aula em sala, e em "Abrir" para mostrar a aula no app (por exemplo, na TV ou no projetor).</p>
       <div class="course">${LEVELS.map(lv=>UNITS.filter(u=>u.level===lv.n).map((u,ui)=>{const ls=L.filter(l=>l.unit===u.id);const all=ls.every(l=>rel.has(l.id));
         return `<h4><span>Nível ${lv.n} · Unidade ${ui+1}: ${esc(u.title.adult)}</span><button class="btn ghost" data-unit="${u.id}" style="padding:6px 12px;font-size:.85rem">${all?'Recolher unidade':'Liberar unidade'}</button></h4>
@@ -1262,6 +1267,7 @@ function viewCourse(el,c){
           <button class="btn ghost" data-rot="${l.id}">${open===l.id?'Fechar':'Roteiro'}</button><button class="btn ghost" data-open="${l.id}">Abrir</button>
           ${open===l.id?`<div class="roteiro">${roteiroHTML(l)}</div>`:''}</div>`).join('')}`;}).join('')).join('')}</div></div>`;
     $('#g-on').onclick=async()=>{if(await save({guided:true},'Agora você libera as aulas ✓'))draw();};
+    const ah=$('#ahead');if(ah)ah.onchange=async()=>{ah.checked?rel.add('@ahead'):rel.delete('@ahead');if(await save({released:[...rel]},ah.checked?'Alunos podem avançar dentro das unidades liberadas ✓':'Alunos fazem só as aulas liberadas ✓'))draw();};
     $('#g-off').onclick=async()=>{if(await save({guided:false},'Alunos seguem sozinhos ✓'))draw();};
     el.querySelectorAll('[data-rel]').forEach(b=>b.onchange=()=>{b.checked?rel.add(b.dataset.rel):rel.delete(b.dataset.rel);b.closest('.crow').classList.toggle('rel',b.checked);saveRel();});
     el.querySelectorAll('[data-unit]').forEach(b=>b.onclick=()=>{const ls=L.filter(l=>l.unit===b.dataset.unit),all=ls.every(l=>rel.has(l.id));ls.forEach(l=>all?rel.delete(l.id):rel.add(l.id));draw();saveRel();});
@@ -1372,7 +1378,7 @@ function drawDetail(el,r){
 
 /* ---------- render ---------- */
 let cleanup=null;
-function go(view){if(cleanup){cleanup();cleanup=null;}stopSpeak();lastSay='';lastMood='';state.view=view;if(idx(view)>=0){state.lastLesson=view;schedulePush();}if(view==='prof')prof.loaded=false;render();window.scrollTo(0,0);}
+function go(view){if(cleanup){cleanup();cleanup=null;}if(idx(view)>=0&&!isUnlocked(idx(view)))view='home';stopSpeak();lastSay='';lastMood='';state.view=view;if(idx(view)>=0){state.lastLesson=view;schedulePush();}if(view==='prof')prof.loaded=false;render();window.scrollTo(0,0);}
 
 function render(){
   document.body.classList.toggle('kid',K());
@@ -1774,8 +1780,8 @@ function viewExam(el,l,i){
     ${missing.length?`<p class="err">Complete as aulas que faltam (${missing.length}) para fazer a prova.</p>`:`<p class="muted">A prova tem ${l.parts.length} partes: ${l.parts.map(p=>p.title.replace(/^Parte \d: /,'')).join(', ')}. Você pode repetir quantas vezes quiser.</p>
     <div class="row" style="justify-content:center"><button class="btn" id="start">Começar a prova</button></div>`}
   </div><div id="part"></div>`;
-  if(missing.length&&!state.unlockAll)return;
-  if(missing.length&&state.unlockAll)el.querySelector('.panel').insertAdjacentHTML('beforeend','<div class="row" style="justify-content:center"><button class="btn" id="start">Começar mesmo assim (teste)</button></div>');
+  if(missing.length&&!testUnlock())return;
+  if(missing.length&&testUnlock())el.querySelector('.panel').insertAdjacentHTML('beforeend','<div class="row" style="justify-content:center"><button class="btn" id="start">Começar mesmo assim (teste)</button></div>');
   $('#start').onclick=()=>{el.querySelector('.panel').remove();runPart();};
   function runPart(){
     const p=l.parts[part],box=$('#part'),need=M(p.pass);
