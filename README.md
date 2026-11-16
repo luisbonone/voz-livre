@@ -4,7 +4,8 @@ Protótipo de app para aprender a cantar, para crianças e adultos. Funciona no 
 
 - **Modo Criança e Adulto**, com escolha de voz grave ou aguda.
 - **Teste de voz:** descobre a extensão e a classificação (baixo, tenor, contralto, soprano) e ajusta o tom de todas as aulas.
-- **Trilha de 19 aulas** em 4 unidades (Fundamentos, Afinação, Expressão, Cantando louvores), liberadas uma de cada vez, com estrelas e dias seguidos de prática.
+- **Curso em 5 níveis** (Iniciante, Básico, Intermediário, Avançado, Ministério). Níveis 1 e 2 prontos: 28 aulas com postura, saúde vocal, teoria, treino de ouvido, escalas, apoio, louvores e provas de nível.
+- **Aquecimento do dia** de 5 minutos no tom da voz do aluno, liberadas uma de cada vez, com estrelas e dias seguidos de prática.
 - **Canarinho Davi:** personagem que guia as crianças, fala as instruções (voz do navegador), reage à afinação e comemora os acertos.
 - **Siga a melodia:** as notas passam na tela e o aluno canta no ritmo; nota de afinação de 0 a 100 em cada exercício e recorde de tempo afinado na nota longa.
 - **Louvores** com melodias de hinos em domínio público e letra na tela, sílaba por sílaba: Cristo me ama, Preciosa Graça e Doxologia.

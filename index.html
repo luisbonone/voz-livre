@@ -162,6 +162,31 @@ canvas.keys{height:90px}
 .lyric span.now{color:var(--accent);font-weight:800}
 .lyric span.past{color:var(--ink)}
 body.wide .app{max-width:1040px}
+.level{display:flex;flex-direction:column;gap:14px}
+.levelhead{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r);background:var(--accent);color:var(--accent-ink)}
+.levelhead .lv{font-family:var(--display);font-weight:800;font-size:1.9rem;line-height:1;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.22)}
+.levelhead div{min-width:0;display:flex;flex-direction:column}
+.levelhead b{font-family:var(--display);font-size:1.25rem;line-height:1.15}
+.levelhead small{opacity:.9;font-weight:700}
+.levelhead.locked{background:var(--surface);color:var(--muted);border:1px dashed var(--line)}
+.levelhead.locked .lv{background:var(--line)}
+.soon{display:flex;flex-direction:column;gap:10px}
+.soon ul{margin:0;padding-left:1.2em;color:var(--muted);font-size:.93rem}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.choices button{border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:14px 10px;font-weight:800;font-size:1rem}
+.choices button:hover:not(:disabled){border-color:var(--accent)}
+.choices button.right{border-color:var(--ok);background:rgba(34,160,97,.15);color:var(--ok)}
+.choices button.wrong{border-color:var(--coral);background:rgba(242,96,79,.12);color:var(--coral)}
+.qcount{text-align:center;font-weight:800;color:var(--muted)}
+.slide{display:flex;flex-direction:column;gap:10px;min-height:9em}
+.slide h3{font-size:1.3rem}
+.slide p{font-size:1.05rem;line-height:1.6}
+.slidedots{display:flex;gap:6px;justify-content:center}
+.slidedots span{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.slidedots span.on{background:var(--accent)}
+.reqs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.reqs li{display:flex;gap:8px;align-items:center}
+.daily{border:2px solid var(--accent)}
 .acct{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:800;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .form{display:flex;flex-direction:column;gap:12px}
 .form label{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.92rem}
@@ -248,7 +273,7 @@ const state={
   streak:store.get('streak',{n:0,last:null}), scores:store.get('scores',{}), vt:store.get('vt',null), view:'home'
 };
 const K=()=>state.mode==='kid';
-const M=(o)=>typeof o==='string'?o:o[state.mode];
+const M=(o)=>(o&&typeof o==='object'&&!Array.isArray(o))?o[state.mode]:o;
 
 /* ---------- music helpers ---------- */
 const NAMES=['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
@@ -382,6 +407,92 @@ const L=[
   tip:{kid:'Você chegou no último louvor da trilha! Cante a Doxologia inteira, bem bonito, para glorificar a Deus.',
        adult:'Quatro frases de 8 notas. Respire no fim de cada frase, na nota longa, e mantenha o pulso regular do começo ao fim.'}}
 ];
+/* ===== Course structure: levels -> units -> lessons ===== */
+const LEVELS=[
+  {n:1,title:'Iniciante',sub:{kid:'Conhecendo a sua voz',adult:'Postura, respiração, saúde vocal e a primeira nota afinada'}},
+  {n:2,title:'Básico',sub:{kid:'Escalas, ouvido e os primeiros louvores',adult:'Escalas, intervalos, vogais, apoio e os primeiros hinos'}},
+  {n:3,title:'Intermediário',soon:true,topics:['Registros de peito e de cabeça','Passagem de registro sem quebrar a voz','Aumentar a extensão','Ritmo e tempo','Ler cifra e partitura simples']},
+  {n:4,title:'Avançado',soon:true,topics:['Vibrato natural','Agilidade e melismas','Voz forte com saúde (belting)','Dinâmica e interpretação','Repertório de hinos mais difíceis']},
+  {n:5,title:'Ministério',soon:true,topics:['Cantar em grupo','Segunda e terceira vozes (harmonia)','Cantar com a banda','Técnica de microfone','Presença no altar e ministração','Preparar um louvor completo']}
+];
+UNITS.length=0;UNITS.push(
+  {id:'n1a',level:1,title:{kid:'Primeiros passos',adult:'Primeiros passos'}},
+  {id:'n1b',level:1,title:{kid:'A primeira nota',adult:'A primeira nota'}},
+  {id:'n2a',level:2,title:{kid:'Escadas e ouvido',adult:'Escalas e ouvido'}},
+  {id:'n2b',level:2,title:{kid:'Falando e cantando',adult:'Expressão e apoio'}},
+  {id:'n2c',level:2,title:{kid:'Primeiros louvores',adult:'Primeiros louvores'}});
+L.push(
+ {id:'posture',type:'guided',sec:20,
+  title:{kid:'Corpo de cantor',adult:'Postura para cantar'},
+  sub:{kid:'Em pé como uma árvore firme',adult:'O corpo é o instrumento'},
+  tip:{kid:'Antes de cantar, a gente arruma o corpo. Fique em pé igual a uma árvore: firme no chão e solto em cima!',
+       adult:'A postura libera a respiração e a laringe. Um corpo alinhado e sem tensão canta melhor e cansa menos.'},
+  items:{kid:[['Pés no chão','Pés separados na largura dos ombros, joelhos soltinhos, sem travar.'],['Fio na cabeça','Imagine um fio puxando o topo da cabeça para o céu. As costas ficam retinhas.'],['Ombros molinhos','Suba os ombros até a orelha e solte. Eles ficam baixos e relaxados.'],['Queixo reto','O queixo fica paralelo ao chão, nem para cima nem para baixo.']],
+         adult:[['Base','Pés na largura dos ombros, peso distribuído, joelhos destravados.'],['Coluna','Coluna alongada, como se um fio puxasse o topo da cabeça. Sem rigidez.'],['Ombros e pescoço','Eleve os ombros, solte e deixe-os baixos. Pescoço livre, sem projetar a cabeça para a frente.'],['Cabeça e sentado','Queixo paralelo ao chão. Sentado: pés apoiados, quadril no fundo da cadeira, tronco alto sem encostar curvado.']]}},
+ {id:'health',type:'theory',
+  title:{kid:'Cuidando da voz',adult:'Saúde vocal'},
+  sub:{kid:'Como deixar a voz sempre bonita',adult:'Hábitos que protegem a voz'},
+  tip:{kid:'A voz é um presente de Deus. Vamos aprender a cuidar dela!',adult:'Técnica sem saúde vocal não se sustenta. Estes hábitos valem para a vida inteira.'},
+  slides:{kid:[['Água, muita água!','As pregas vocais precisam estar molhadinhas para vibrar. Beba água várias vezes durante o dia, não só na hora de cantar.'],['Nada de gritar','Gritar machuca a voz. Quando quiser chamar alguém longe, vá até perto da pessoa.'],['Pigarro, não!','Quando a garganta coçar, em vez de pigarrear ("hum-hum"), engula ou beba um gole de água.'],['Dormir bem','A voz também descansa quando você dorme. Voz cansada fica rouca.'],['Se doer, pare','Cantar não pode doer. Se doer ou ficar rouco, descanse e conte para um adulto.']],
+          adult:[['Hidratação','As pregas vocais são hidratadas de dentro para fora: beba água ao longo do dia todo. Café e álcool em excesso ressecam.'],['Evite abusos','Gritar, falar alto em ambientes barulhentos e sussurrar com força cansam as pregas vocais. Aproxime-se em vez de gritar.'],['Pigarro','Pigarrear atrita as pregas vocais. Troque por engolir saliva ou beber um gole de água.'],['Descanso e aquecimento','Sono e repouso vocal recuperam a voz. Aqueça antes de cantar e desaqueça depois de uso intenso.'],['Sinais de alerta','Rouquidão por mais de duas semanas, dor ou perda de voz: procure um otorrinolaringologista ou fonoaudiólogo. Não fume.']]},
+  quiz:[{q:'A garganta coçou. O que é melhor fazer?',o:['Pigarrear forte','Engolir ou beber água','Gritar para limpar'],a:1},
+        {q:'Quando beber água?',o:['Só na hora de cantar','Várias vezes ao longo do dia','Só quando estiver rouco'],a:1},
+        {q:'Cantar fez doer a garganta. E agora?',o:['Cantar mais forte','Parar e descansar a voz','Sussurrar o resto da música'],a:1}]},
+ {id:'ear_hl',type:'ear',mode:'hl',n:8,
+  title:{kid:'Ouvidinho esperto',adult:'Ouvido: agudo ou grave?'},
+  sub:{kid:'Qual som é mais fininho?',adult:'Comparar a altura de duas notas'},
+  tip:{kid:'Cantar começa no ouvido! Vou tocar dois sons. Diga se o segundo é mais fininho (agudo), mais grossinho (grave) ou igual.',
+       adult:'Afinação começa na percepção. Você vai ouvir duas notas: diga se a segunda é mais aguda, mais grave ou igual à primeira.'}},
+ {id:'voicehow',type:'theory',
+  title:{kid:'Como a voz funciona',adult:'Como a voz funciona'},
+  sub:{kid:'O instrumento que mora em você',adult:'Ar, vibração e ressonância'},
+  tip:{kid:'Você sabia que tem um instrumento dentro de você? Vamos conhecer!',adult:'Entender o mecanismo da voz ajuda a corrigir problemas e treinar com consciência.'},
+  slides:{kid:[['1. O ar','Tudo começa no ar que entra nos pulmões. O ar é a "gasolina" da voz.'],['2. As pregas vocais','No pescoço, no "gogó", ficam duas pregas vocais. Quando o ar passa, elas vibram muito rápido, como as asas de um beija-flor!'],['3. A caixinha de som','O som sai pela garganta, boca e nariz, que deixam a voz mais forte e bonita, como a caixa de um violão.'],['4. As palavras','A língua, os lábios e os dentes transformam o som em palavras.']],
+          adult:[['1. Ar (fonte de energia)','Os pulmões, controlados pelo diafragma e pela musculatura do tronco, fornecem o fluxo de ar. Sem ar bem administrado, não há sustentação.'],['2. Pregas vocais (vibração)','Na laringe, as pregas vocais se aproximam e vibram com a passagem do ar. Na nota Lá 440, elas vibram 440 vezes por segundo.'],['3. Ressonância (amplificação)','Faringe, boca e cavidades nasais amplificam e dão cor ao som. É aqui que trabalhamos o timbre.'],['4. Articulação','Língua, lábios, dentes e palato moldam vogais e consoantes. Boa articulação faz a letra ser entendida.']]},
+  quiz:[{q:'O que vibra para produzir a voz?',o:['Os pulmões','As pregas vocais','A língua'],a:1},
+        {q:'Para que serve a boca e a garganta no canto?',o:['Amplificar e dar cor ao som','Guardar o ar','Nada, só a laringe importa'],a:0},
+        {q:'De onde vem a energia da voz?',o:['Do ar dos pulmões','Da força do pescoço','Dos ombros'],a:0}]},
+ {id:'exam1',type:'exam',
+  title:{kid:'Prova do Nível 1',adult:'Prova do Nível 1'},
+  sub:{kid:'Mostre o que aprendeu e suba de nível!',adult:'Ouvido + afinação para liberar o Básico'},
+  tip:{kid:'Chegou a hora da prova! Não precisa ter medo: é tudo o que você já treinou.',adult:'A prova confirma a base antes de seguir: percepção de altura e uma nota sustentada afinada.'},
+  parts:[{kind:'ear',mode:'hl',n:8,pass:75,title:'Parte 1: ouvido'},{kind:'seq',steps:[0,4],hold:{kid:1.2,adult:1.8},pass:{kid:55,adult:65},title:'Parte 2: afinação'}]},
+ {id:'theory_scale',type:'theory',
+  title:{kid:'Dó, Ré, Mi...',adult:'Teoria: notas e escala'},
+  sub:{kid:'Os nomes das notas',adult:'Notas, tons, semitons e oitava'},
+  tip:{kid:'As notas têm nomes, como as pessoas! Vamos conhecer a família das notas.',adult:'Um pouco de teoria para entender o que você canta nas escalas.'},
+  slides:{kid:[['Sete notas','As notas são sete: Dó, Ré, Mi, Fá, Sol, Lá, Si. Depois do Si, o Dó volta, só que mais fininho!'],['Grave e agudo','Som grave é grossinho, como um urso. Som agudo é fininho, como um passarinho.'],['A escada','Cantar Dó-Ré-Mi-Fá-Sol é como subir uma escada. Entre o Mi e o Fá o degrau é mais baixinho.']],
+          adult:[['As sete notas','Dó, Ré, Mi, Fá, Sol, Lá, Si. Depois do Si o ciclo recomeça no Dó seguinte, uma oitava acima.'],['Tom e semitom','O semitom é a menor distância entre duas notas no teclado. Um tom são dois semitons. Mi–Fá e Si–Dó são semitons naturais.'],['Escala maior','A escala maior segue o padrão tom, tom, semitom, tom, tom, tom, semitom. É a base da maioria dos hinos.'],['Oitava','Uma nota e a mesma nota uma oitava acima têm o mesmo nome. A frequência dobra: Lá 220 e Lá 440.']]},
+  quiz:[{q:'Qual nota vem depois do Sol?',o:['Fá','Lá','Si'],a:1},
+        {q:'Entre quais notas há um semitom natural?',o:['Dó e Ré','Mi e Fá','Sol e Lá'],a:1},
+        {q:'O que acontece com a frequência na oitava acima?',o:['Dobra','Fica igual','Cai pela metade'],a:0}]},
+ {id:'ear_int',type:'ear',mode:'int',n:8,
+  title:{kid:'Pulos de nota no ouvido',adult:'Ouvido: intervalos'},
+  sub:{kid:'O pulo foi pequeno ou grande?',adult:'Reconhecer 2ª, 3ª, 5ª e oitava'},
+  tip:{kid:'Vou tocar duas notas. Escute se foi a mesma nota, um passinho, um pulo médio ou um pulão!',
+       adult:'Intervalos são a distância entre duas notas. Reconhecê-los ajuda a cantar melodias e, no futuro, a fazer segunda voz.'}},
+ {id:'support',type:'guided',sec:20,
+  title:{kid:'Barriga forte',adult:'Apoio respiratório'},
+  sub:{kid:'Sss, ts-ts-ts e risada do Papai Noel',adult:'Controle do fluxo de ar'},
+  tip:{kid:'O ar que sai da barriga é a força da voz. Coloque a mão na barriga e sinta ela trabalhando!',
+       adult:'Apoio é a gestão ativa do ar pela musculatura abdominal e intercostal, sem tensão na garganta. É o que sustenta notas longas e agudas.'},
+  items:{kid:[['Pneu furado','Faça "sssss" bem comprido e constante, como um pneu esvaziando.'],['Trenzinho','Faça "ts-ts-ts-ts" e sinta a barriga pular a cada som.'],['Papai Noel','Ria "ho-ho-ho" com a mão na barriga. Ela empurra o ar!'],['Abelha','Faça "vvvvv" comprido, sentindo cócegas nos lábios.']],
+         adult:[['"Sss" contínuo','Inspire sem subir os ombros e solte "sss" constante pelo maior tempo possível, sem afundar o peito.'],['Pulsos "ts"','"ts-ts-ts" em ritmo: cada pulso vem de um pequeno impulso abdominal. Garganta passiva.'],['Staccato "ha"','"Ha-ha-ha" curto e leve, em uma nota confortável. O abdômen ativa cada nota.'],['"Vvv" sustentado','Fricativa sonora: a resistência dos lábios ajuda a equilibrar ar e voz.']]}},
+ {id:'exam2',type:'exam',
+  title:{kid:'Prova do Nível 2',adult:'Prova do Nível 2'},
+  sub:{kid:'A grande prova do Básico!',adult:'Intervalos, escala e um louvor no ritmo'},
+  tip:{kid:'Você chegou longe! Nesta prova tem ouvido, escala e um louvor. Respire fundo e vamos!',adult:'Prova final do Básico: reconhecer intervalos, cantar a escala afinada e um hino no tempo.'},
+  parts:[{kind:'ear',mode:'int',n:8,pass:65,title:'Parte 1: intervalos'},{kind:'seq',steps:[0,2,4,5,7,5,4,2,0],pass:{kid:55,adult:65},title:'Parte 2: escala afinada'},{kind:'follow',ref:'follow2',pass:{kid:50,adult:60},title:'Parte 3: louvor no ritmo'}]}
+);
+const ORDER={posture:'n1a',breath:'n1a',health:'n1a',warm:'n1a', ear_hl:'n1b',first:'n1b',sustain:'n1b',voicehow:'n1b',exam1:'n1b',
+  vowels:'n2a',scale3:'n2a',scale5:'n2a',theory_scale:'n2a',updown:'n2a',ear_int:'n2a',leaps:'n2a',long:'n2a',follow1:'n2a',
+  support:'n2b',diction:'n2b',dyn:'n2b',
+  song1:'n2c',follow2:'n2c',song2:'n2c',follow3:'n2c',song3:'n2c',follow4:'n2c',exam2:'n2c'};
+const ORD_KEYS=Object.keys(ORDER);
+L.forEach(l=>l.unit=ORDER[l.id]);
+L.sort((a,b)=>ORD_KEYS.indexOf(a.id)-ORD_KEYS.indexOf(b.id));
+const levelOf=l=>(UNITS.find(u=>u.id===l.unit)||{}).level;
+function studentLevel(done){return done&&done.exam2?3:(done&&done.exam1?2:1);}
 const idx=id=>L.findIndex(l=>l.id===id);
 const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id];
 
@@ -390,7 +501,9 @@ function scoreLabel(v){return v>=90?'Excelente!':v>=75?'Muito bom!':v>=60?'Bom!'
 function scoreHTML(v,id){const b=state.scores[id];return `<div class="score"><span class="label">Nota de afinação</span><b>${v}<span style="font-size:1.2rem">/100</span></b><small>${scoreLabel(v)}${b!=null&&b>v?` · Seu recorde: ${b}`:''}</small></div>`}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function markDone(id){
-  state.done[id]=true; store.set('done',state.done);
+  state.done[id]=true; store.set('done',state.done); bumpStreak();
+}
+function bumpStreak(){
   const t=today(),s=state.streak;
   if(s.last!==t){const y=new Date();y.setDate(y.getDate()-1);
     const ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
@@ -511,7 +624,7 @@ function homeLine(){
   if(typeof cloud!=='undefined'&&cloud.msgs.some(m=>!m.read_at))return 'Seu professor deixou um recado para você! Leia aqui embaixo.';
   if(n===0&&!state.vt)return 'Oi! Eu sou o Davi, o canarinho. Vou te ensinar a cantar para louvar a Deus! Primeiro, vamos fazer o teste de voz?';
   if(n===0)return 'Já conheço a sua voz! Agora toque na aula 1 para começar.';
-  if(n===L.length)return 'Você completou a trilha inteira! Agora é cantar louvores com essa voz linda!';
+  if(n===L.length)return 'Você completou os níveis 1 e 2! Continue com o aquecimento do dia enquanto preparamos o próximo nível.';
   const nx=L.find((l,i)=>!state.done[l.id]&&isUnlocked(i));
   return `Que bom te ver de novo! Você já tem ${n} ${n===1?'estrela':'estrelas'}.`+(nx?` Hoje vamos fazer: ${nx.title.kid}.`:'');
 }
@@ -681,9 +794,9 @@ function viewTeacher(el){
       <p class="muted">Os alunos tocam em <b>Entrar</b> no app, criam a conta e digitam este código.</p>
       <div class="statrow"><div class="stat"><b>${rows.length}</b><small>alunos</small></div><div class="stat"><b>${active}</b><small>treinaram nesta semana</small></div><div class="stat"><b>${attention}</b><small>precisam de atenção</small></div></div>
     </div>
-    ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Voz</th></tr></thead><tbody>
+    ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Nível</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Voz</th></tr></thead><tbody>
       ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${r.st.is_minor?' <small class="muted">(menor)</small>':''}</td>
-        <td><span class="chip ${r.cls}">${r.status}</span></td>
+        <td><span class="chip ${r.cls}">${r.status}</span></td><td>${studentLevel(r.pr.done)} · ${LEVELS[studentLevel(r.pr.done)-1].title}</td>
         <td><span class="minibar"><b style="width:${Math.round(r.done/L.length*100)}%"></b></span>${r.done}/${L.length}</td>
         <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
     </tbody></table></div>`:`<div class="panel"><p class="muted">Nenhum aluno nesta turma ainda. Passe o código <b>${esc(c.code)}</b> para eles.</p></div>`}
@@ -743,7 +856,8 @@ function render(){
     <div class="statrow">
       <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
       <div class="stat"><b>🔥 ${streakNow()}</b><small>${streakNow()===1?'dia seguido':'dias seguidos'}</small></div>
-      <div class="stat"><b>${Math.round(stars/L.length*100)}%</b><small>da trilha</small></div>
+      <div class="stat"><b>Nível ${studentLevel(state.done)}</b><small>${LEVELS[studentLevel(state.done)-1].title}</small></div>
+      <div class="stat" hidden><b>${Math.round(stars/L.length*100)}%</b><small>do curso (níveis 1 e 2)</small></div>
     </div>
     ${state.vt?`<section class="vcard"><div><span class="label">Sua voz</span><b>${state.vt.cls}</b><small>${nmo(state.vt.low)} até ${nmo(state.vt.high)} · as aulas usam o seu tom</small></div><button class="btn ghost" id="vtgo">Refazer teste</button></section>`
       :`<section class="vcard new"><div><span class="label">Comece por aqui</span><b>Teste de voz</b><small>1 minuto para o app descobrir o tom certo da sua voz</small></div><button class="btn" id="vtgo">Fazer o teste</button></section>`}
@@ -751,20 +865,26 @@ function render(){
       <div class="seg" role="group" aria-label="Tipo de voz">
         <button id="v-low" aria-pressed="${state.voice==='low'}">Grave (masculina)</button>
         <button id="v-high" aria-pressed="${state.voice==='high'}">Aguda (feminina)</button></div></section>`:''}
-    ${UNITS.map((u,ui)=>{const ls=L.map((l,i)=>[l,i]).filter(([l])=>l.unit===u.id);
+    ${dailyCard()}
+    ${LEVELS.map(lv=>{
+      if(lv.soon)return `<section class="level"><div class="levelhead locked"><span class="lv">${lv.n}</span><div><b>Nível ${lv.n} · ${lv.title}</b><small>Em breve</small></div></div>
+        <div class="soon"><ul>${lv.topics.map(t=>`<li>${t}</li>`).join('')}</ul></div></section>`;
+      const units=UNITS.filter(u=>u.level===lv.n),lessons=L.filter(l=>levelOf(l)===lv.n),ld=lessons.filter(l=>state.done[l.id]).length;
+      return `<section class="level"><div class="levelhead"><span class="lv">${lv.n}</span><div><b>Nível ${lv.n} · ${lv.title}</b><small>${M(lv.sub)} · ${ld}/${lessons.length}</small></div></div>
+      ${units.map((u,ui)=>{const ls=L.map((l,i)=>[l,i]).filter(([l])=>l.unit===u.id);
       const dn=ls.filter(([l])=>state.done[l.id]).length;
       return `<section class="unit"><h3>Unidade ${ui+1} · ${M(u.title)} <small>${dn}/${ls.length}</small></h3><div class="path">
       ${ls.map(([l,i])=>{const done=state.done[l.id],open=isUnlocked(i),cls=done?'done':(i===nextI?'next open':(open?'open':'locked'));
         return `<button class="node ${cls}" data-go="${l.id}" ${open?'':'aria-disabled="true"'}>
           <span class="dot">${done?'★':(open?i+1:'🔒')}</span>
           <span class="txt"><b>${M(l.title)}</b><small>${open?M(l.sub):'Complete a aula anterior para liberar'}${state.scores[l.id]!=null?` · Melhor nota: ${state.scores[l.id]}`:''}</small></span></button>`}).join('')}
-      </div></section>`}).join('')}
+      </div></section>`}).join('')}</section>`}).join('')}
     <p class="verse">"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras." Salmo 96:1</p>
     <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão<br>
       <button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button></footer>`;
     app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide('Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
     if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
-    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();
+    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');
     $('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
@@ -774,6 +894,9 @@ function render(){
   } else if(state.view==='prof'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar ao app</button><h2>Painel do professor</h2><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewTeacher($('#body'));
+  } else if(state.view==='daily'){
+    app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">5 minutos · no seu tom</span><h2>Aquecimento do dia</h2></div><div id="body"></div>`;
+    $('#back').onclick=()=>go('home');viewDaily($('#body'));
   } else if(state.view==='voicetest'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">1 minuto</span><h2>Teste de voz</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewVoiceTest($('#body'));
@@ -782,7 +905,7 @@ function render(){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');
-    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn})[l.type]($('#body'),l,i);
+    ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam})[l.type]($('#body'),l,i);
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
@@ -859,7 +982,7 @@ function viewSustain(el,l,i){
 }
 
 /* ---------- note sequence (single notes, scales, songs) ---------- */
-function viewSeq(el,l,i){
+function viewSeq(el,l,i,opts){
   const base=baseNote(l),notes=l.steps.map(s=>base+s),tol=K()?45:30;
   const hold=l.hold?M(l.hold):(K()?.6:.8);
   const single=notes.length===1;
@@ -942,16 +1065,140 @@ function viewSeq(el,l,i){
       else{hint.textContent=cents<0?H.up:H.down;held=Math.max(0,held-dt*.3);react(stepT>9?'help':(cents<0?'up':'down'));}
       pg.style.width=Math.min(100,held/hold*100)+'%';
       if(held>=hold){held=0;step++;
-        if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');markDone(l.id);
-          const sc=voiced>0?Math.round(100*(.6*inT/voiced+.4*Math.max(0,1-absSum/voiced/100))):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);saveScore(l.id,sc);
+        if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');if(!opts)markDone(l.id);
+          const sc=voiced>0?Math.round(100*(.6*inT/voiced+.4*Math.max(0,1-absSum/voiced/100))):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);if(!opts)saveScore(l.id,sc);
           hint.innerHTML=`<span class="win"><span class="big">★</span>${single?(K()?'Você acertou a nota!':'Nota sustentada com afinação!'):(K()?'Você cantou tudinho!':'Sequência completa e afinada!')}</span>`;
-          $('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
+          if(opts){stopMic();opts.onWin(sc);}else{$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}}
         else{show();trail=[];stepT=0;moodT=0;react('next');if(l.gap||(l.gapRepeats&&notes[step]===notes[step-1])){needGap=true;gapT=0;}}}
     }
     draw(cents);
   }
   draw(null);
   cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
+}
+
+/* ---------- ear training quiz ---------- */
+const INTS=[[0,'Mesma nota','Igual'],[2,'Passo (2ª)','Passinho'],[4,'Terça (3ª)','Pulo médio'],[7,'Quinta (5ª)','Pulão'],[12,'Oitava (8ª)','Pulo gigante']];
+function viewEar(el,l,i,opts){
+  const n=l.n||8,mode=l.mode,b=baseNote(l),pass=(opts&&opts.pass)||75;
+  const qs=[];for(let k=0;k<n;k++){
+    if(mode==='hl'){const a=b+Math.floor(Math.random()*8);const pool=K()?[-5,-4,-3,3,4,5,0]:[-4,-3,-2,-1,1,2,3,4,0,0];const d=pool[Math.floor(Math.random()*pool.length)];qs.push({a,b2:a+d,ans:d>0?0:(d<0?2:1)});}
+    else{const a=b+Math.floor(Math.random()*5);const it=Math.floor(Math.random()*INTS.length);qs.push({a,b2:a+INTS[it][0],ans:it});}}
+  const labels=mode==='hl'?(K()?['Mais fininho ⬆','Igual','Mais grossinho ⬇']:['Mais aguda ⬆','Igual','Mais grave ⬇']):INTS.map(x=>K()?x[2]:x[1]);
+  let k=0,right=0,answered=false;
+  el.innerHTML=`<div class="panel">${opts?'':tipBox(l)}
+    <p class="qcount" id="qc"></p>
+    <div class="row" style="justify-content:center"><button class="btn" id="play">▶ Ouvir</button></div>
+    <p class="hint" id="hint">${mode==='hl'?'A segunda nota é...':'Qual foi a distância?'}</p>
+    <div class="choices" id="ch">${labels.map((t,j)=>`<button data-j="${j}">${t}</button>`).join('')}</div>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="nextq" hidden>Próxima →</button></div>
+    <div id="scorebox"></div><div class="row" style="justify-content:center" id="after"></div></div>`;
+  const play=()=>{const q=qs[k];playTone(midiToHz(q.a),.8);playTone(midiToHz(q.b2),.8,null,1.0);};
+  function show(){answered=false;$('#qc').textContent=`Pergunta ${k+1} de ${n}`;$('#nextq').hidden=true;
+    el.querySelectorAll('#ch button').forEach(bt=>{bt.className='';bt.disabled=false;});$('#hint').textContent=mode==='hl'?'A segunda nota é...':'Qual foi a distância?';}
+  show();
+  $('#play').onclick=()=>{ctx();play();};
+  el.querySelectorAll('#ch button').forEach(bt=>bt.onclick=()=>{if(answered)return;answered=true;const j=+bt.dataset.j,q=qs[k];
+    el.querySelectorAll('#ch button').forEach(x=>x.disabled=true);
+    if(j===q.ans){right++;bt.className='right';$('#hint').textContent=K()?'Acertou! 🎉':'Correto!';if(K())guide(['Muito bem!','Isso aí!','Ouvido de ouro!'][k%3],'happy');}
+    else{bt.className='wrong';el.querySelector(`#ch button[data-j="${q.ans}"]`).className='right';$('#hint').textContent=`A resposta era: ${labels[q.ans]}. Ouça de novo.`;if(K())guide('Quase! Toque em Ouvir de novo para comparar.','think');}
+    $('#nextq').hidden=false;$('#nextq').textContent=k+1<n?'Próxima →':'Ver resultado';});
+  $('#nextq').onclick=()=>{k++;if(k<n){show();ctx();play();return;}
+    const sc=Math.round(right/n*100);$('#ch').hidden=true;$('#play').hidden=true;$('#nextq').hidden=true;$('#qc').textContent=`${right} de ${n} certas`;
+    if(opts){opts.onWin(sc);return;}
+    $('#scorebox').innerHTML=scoreHTML(sc,l.id).replace('Nota de afinação','Nota de percepção');saveScore(l.id,sc);
+    if(sc>=pass){markDone(l.id);$('#hint').innerHTML=`<span class="win"><span class="big">★</span>${K()?'Que ouvido!':'Percepção aprovada!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
+    else{$('#hint').textContent=`Para ganhar a estrela, acerte ${Math.ceil(pass/100*n)} de ${n}. Vamos de novo?`;$('#after').innerHTML='<button class="btn" id="again">Tentar de novo</button>';$('#again').onclick=()=>go(l.id);}};
+  cleanup=null;
+}
+
+/* ---------- short theory lesson: slides + quiz ---------- */
+function viewTheory(el,l,i){
+  const sl=M(l.slides);let k=0;
+  el.innerHTML=`<div class="panel">${tipBox(l)}<div class="slide" id="sl"></div><div class="slidedots" id="sd">${sl.map(()=>'<span></span>').join('')}</div>
+    <div class="row" style="justify-content:space-between"><button class="btn ghost" id="prev">← Voltar</button><button class="btn" id="nx">Próximo →</button></div>
+    <div id="quiz"></div><div class="row" style="justify-content:center" id="after"></div></div>`;
+  function show(){$('#sl').innerHTML=`<span class="label">${k+1} de ${sl.length}</span><h3>${sl[k][0]}</h3><p>${sl[k][1]}</p>`;
+    el.querySelectorAll('#sd span').forEach((d,j)=>d.className=j===k?'on':'');$('#prev').disabled=k===0;$('#nx').textContent=k<sl.length-1?'Próximo →':'Fazer o quiz';
+    if(K())guide(sl[k][1],'happy',true);}
+  show();
+  $('#prev').onclick=()=>{if(k>0){k--;show();}};
+  $('#nx').onclick=()=>{if(k<sl.length-1){k++;show();return;}quiz();};
+  function quiz(){
+    let ok=new Array(l.quiz.length).fill(false);
+    $('#quiz').innerHTML=`<span class="label">Quiz rápido</span>`+l.quiz.map((q,qi)=>`<div class="form" style="margin-top:10px"><b>${qi+1}. ${q.q}</b><div class="choices" data-q="${qi}">${q.o.map((o,oi)=>`<button data-o="${oi}">${o}</button>`).join('')}</div></div>`).join('');
+    $('#quiz').scrollIntoView({behavior:'smooth',block:'start'});
+    el.querySelectorAll('#quiz .choices').forEach(c=>c.querySelectorAll('button').forEach(bt=>bt.onclick=()=>{const qi=+c.dataset.q,oi=+bt.dataset.o;
+      if(oi===l.quiz[qi].a){bt.className='right';c.querySelectorAll('button').forEach(x=>x.disabled=true);ok[qi]=true;
+        if(ok.every(Boolean)){markDone(l.id);$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);if(!K())$('#after').insertAdjacentHTML('afterbegin','<p class="okmsg" style="width:100%;text-align:center">Tudo certo! ★</p>');}}
+      else{bt.className='wrong';bt.disabled=true;if(K())guide('Quase! Tente outra resposta.','think');}}));
+  }
+}
+
+/* ---------- level exam: parts in sequence ---------- */
+function viewExam(el,l,i){
+  const lv=levelOf(l),prev=L.filter(x=>levelOf(x)===lv&&x.id!==l.id),missing=prev.filter(x=>!state.done[x.id]);
+  const scores=[];let part=0;
+  el.innerHTML=`<div class="panel">${tipBox(l)}
+    <div><span class="label">Antes da prova</span><ul class="reqs">${prev.map(x=>`<li>${state.done[x.id]?'✅':'⬜'} ${M(x.title)}</li>`).join('')}</ul></div>
+    ${missing.length?`<p class="err">Complete as aulas que faltam (${missing.length}) para fazer a prova.</p>`:`<p class="muted">A prova tem ${l.parts.length} partes: ${l.parts.map(p=>p.title.replace(/^Parte \d: /,'')).join(', ')}. Você pode repetir quantas vezes quiser.</p>
+    <div class="row" style="justify-content:center"><button class="btn" id="start">Começar a prova</button></div>`}
+  </div><div id="part"></div>`;
+  if(missing.length&&!state.unlockAll)return;
+  if(missing.length&&state.unlockAll)el.querySelector('.panel').insertAdjacentHTML('beforeend','<div class="row" style="justify-content:center"><button class="btn" id="start">Começar mesmo assim (teste)</button></div>');
+  $('#start').onclick=()=>{el.querySelector('.panel').remove();runPart();};
+  function runPart(){
+    const p=l.parts[part],box=$('#part'),need=M(p.pass);
+    box.innerHTML=`<p class="label" style="text-align:center">${p.title} · precisa de ${need} pontos</p><div id="pbody"></div>`;
+    const done=sc=>{scores[part]=sc;
+      const res=document.createElement('div');res.className='panel';
+      if(sc>=need){part++;
+        if(part<l.parts.length){res.innerHTML=`<p class="okmsg" style="text-align:center">✓ ${p.title}: ${sc} pontos</p><div class="row" style="justify-content:center"><button class="btn" id="np">Ir para a ${l.parts[part].title.split(':')[0]}</button></div>`;box.appendChild(res);$('#np').onclick=()=>{if(cleanup){cleanup();cleanup=null;}runPart();};if(K())guide('Passou nessa parte! Vamos para a próxima.','happy','force');}
+        else{const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);markDone(l.id);saveScore(l.id,avg);
+          const nextLv=LEVELS[lv];
+          res.innerHTML=`<div class="win"><span class="big">🏆</span><h3>Aprovado no Nível ${lv}!</h3><p>Nota final: <b>${avg}</b>.</p>
+            <p class="muted">${nextLv?(nextLv.soon?`O Nível ${nextLv.n} (${nextLv.title}) está chegando em breve. Continue treinando com o aquecimento do dia e os louvores.`:`O Nível ${nextLv.n} · ${nextLv.title} está liberado!`):''}</p></div>
+            <div class="row" style="justify-content:center">${nextBtn(i)}</div>`;box.appendChild(res);wireNext(i);celebrate(i,avg);}
+      } else {res.innerHTML=`<p class="err" style="text-align:center">${p.title}: ${sc} pontos. Precisa de ${need}. Treine mais um pouco e tente de novo!</p><div class="row" style="justify-content:center"><button class="btn" id="rp">Tentar esta parte de novo</button></div>`;
+        box.appendChild(res);$('#rp').onclick=()=>{if(cleanup){cleanup();cleanup=null;}runPart();};if(K())guide('Quase! Respire fundo e tente de novo, você consegue!','idle','force');}
+      res.scrollIntoView({behavior:'smooth',block:'center'});};
+    const sub={...l,id:l.id+'_'+part,title:l.title,tip:l.tip,steps:p.steps,hold:p.hold,n:p.n,mode:p.mode};
+    if(p.kind==='ear')viewEar($('#pbody'),sub,i,{onWin:done,pass:need});
+    else if(p.kind==='seq')viewSeq($('#pbody'),sub,i,{onWin:done});
+    else if(p.kind==='follow'){const ref=L[idx(p.ref)];viewFollow($('#pbody'),{...ref,id:l.id+'_'+part,tip:l.tip},i,{onWin:done});}
+    if(K()&&p.kind!=='ear')wireGuide();
+  }
+}
+
+/* ---------- daily warm-up, in the student's key ---------- */
+function dailyCard(){const d=store.get('dailyLast',null)===today();
+  return `<section class="vcard daily"><div><span class="label">Todo dia · 5 minutos</span><b>${d?'Aquecimento feito hoje ✓':'Aquecimento do dia'}</b><small>${d?'Pode repetir quando quiser':'Prepare a voz no seu tom antes das aulas'}</small></div><button class="btn${d?' ghost':''}" id="dailygo">${d?'Repetir':'Começar'}</button></section>`;}
+function viewDaily(el){
+  const b=baseNote(null),P=(steps,dur,root)=>({steps,dur,root});
+  const plan=[
+    {t:K()?'Respirar como balão':'Respiração',d:K()?'Inspire enchendo a barriga e solte em "sss". Repita até o tempo acabar.':'Inspire pelo nariz expandindo o abdômen; solte em "sss" constante. Repita no seu ritmo.',sec:40},
+    {t:K()?'Motinha subindo e descendo':'Vibração de lábios em sirene',d:K()?'Faça "brrr" junto com o som, subindo e descendo.':'"Brrr" acompanhando a sirene, sem forçar nos extremos.',sec:45,sir:true},
+    {t:K()?'Abelhinha nas escadas':'Humming em 5 notas',d:K()?'Boca fechada, "mmm" junto com as notas. Cada vez começa um pouquinho mais alto.':'"Mmm" no padrão 1-2-3-4-5-4-3-2-1, subindo meio tom a cada repetição.',sec:60,pat:[0,2,4,5,7,5,4,2,0]},
+    {t:K()?'Mi-mé-má-mó-mu':'Vogais no arpejo',d:K()?'Cante "mi-mé-má-mó-mu" seguindo as notas.':'"Mi-mé-má-mó-mu" no arpejo 1-3-5-3-1, mantendo a mesma ressonância nas vogais.',sec:60,pat:[0,4,7,4,0]},
+    {t:K()?'Relaxar':'Desaquecer e relaxar',d:K()?'Boceje bem grande, gire os ombros e respire calminho.':'Boceje, gire os ombros, faça um "uuu" descendente suave. Pronto para cantar!',sec:25}];
+  el.innerHTML=`<div class="panel">${K()?guideHTML('Vamos aquecer a voz juntos! Siga o som e faça igual.','happy'):'<div class="tip"><span>💡</span><p><b>Dica do professor:</b> Faça o aquecimento todos os dias, mesmo quando não for cantar muito. Ele já está no tom da sua voz.</p></div>'}
+    <ol class="steps">${plan.map((w,k)=>`<li><span class="n">${k+1}</span><span class="t"><h3>${w.t}</h3><span class="muted">${w.d}</span></span></li>`).join('')}</ol>
+    <div class="timer" id="tm">5:30</div>
+    <div class="row" style="justify-content:center"><button class="btn" id="go">Começar</button><button class="btn ghost" id="skip">Pular passo</button></div>
+    <div class="row" style="justify-content:center" id="after"></div></div>`;
+  if(K()){wireGuide();lastSay='x';lastMood='happy';}
+  const items=[...el.querySelectorAll('.steps li')];let k=-1,left=0,iv=null,tos=[];
+  const clearT=()=>{tos.forEach(clearTimeout);tos=[];};
+  function sound(w){clearT();if(w.sir){const go2=()=>{playTone(midiToHz(b),3,midiToHz(b+9));tos.push(setTimeout(go2,4200));};go2();}
+    else if(w.pat){let r=0;const seq=[0,1,2,3,4,3,2,1,0];const go2=()=>{const root=b+seq[r%seq.length];w.pat.forEach((s2,j)=>playTone(midiToHz(root+s2),.33,null,j*.36));r++;tos.push(setTimeout(go2,(w.pat.length*.36+1.2)*1000));};go2();}}
+  function next(){if(k>=0)items[k].classList.replace('on','ok');k++;clearT();
+    if(k>=plan.length){clearInterval(iv);$('#tm').textContent=K()?'Voz aquecida! ★':'Aquecimento concluído ★';store.set('dailyLast',today());bumpStreak();
+      $('#go').disabled=false;$('#go').textContent='Repetir';$('#after').innerHTML='<button class="btn" id="tohome">Ir para as aulas</button>';$('#tohome').onclick=()=>go('home');if(K()){confetti();guide('Voz quentinha! Agora vamos para as aulas!','cheer','force');}return;}
+    items[k].classList.add('on');left=plan[k].sec;if(K())guide(plan[k].d,'happy',true);sound(plan[k]);}
+  function fmt(){let rest=left;for(let j=k+1;j<plan.length;j++)rest+=plan[j].sec;$('#tm').textContent=Math.floor(rest/60)+':'+String(rest%60).padStart(2,'0');}
+  $('#go').onclick=()=>{ctx();items.forEach(x=>x.className='');k=-1;$('#go').disabled=true;next();fmt();clearInterval(iv);iv=setInterval(()=>{left--;if(left<=0)next();if(k<plan.length)fmt();},1000);};
+  $('#skip').onclick=()=>{if(k>=0&&k<plan.length){next();if(k<plan.length)fmt();}};
+  cleanup=()=>{clearInterval(iv);clearT();};
 }
 
 /* ---------- guided steps (diction) ---------- */
@@ -964,7 +1211,7 @@ function viewGuided(el,l,i){
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   const items=[...el.querySelectorAll('.steps li')],tm=$('#tm'),btn=$('#go');let k=-1,left=0,iv=null;
   function next(){if(k>=0)items[k].classList.replace('on','ok');k++;
-    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Língua afiada! ★':'Concluído ★';markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
+    if(k>=items.length){clearInterval(iv);tm.textContent=K()?'Muito bem! ★':'Concluído ★';markDone(l.id);btn.disabled=false;btn.textContent='Repetir';$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i);return;}
     items[k].classList.add('on');left=SEC;tm.textContent=left+'s';if(K())guide(steps[k][1],'happy',true);}
   btn.onclick=()=>{items.forEach(x=>x.className='');k=-1;btn.disabled=true;next();clearInterval(iv);iv=setInterval(()=>{left--;tm.textContent=left+'s';if(left<=0)next();},1000);};
   $('#skip').onclick=()=>{if(k>=0&&k<items.length)next();};
@@ -1108,7 +1355,7 @@ function viewVoiceTest(el){
 }
 
 /* ---------- follow the melody (in time, with score) ---------- */
-function viewFollow(el,l,i){
+function viewFollow(el,l,i,opts){
   const base=baseNote(l),beat=K()?.6:.5,tol=K()?50:35,pass=K()?50:60;
   let t=0;const ev=l.steps.map((s,k)=>{const d=(l.beats?l.beats[k]:1)*beat;const e={m:base+s,t0:t,t1:t+d*.9,hit:0,tot:0};t+=d;return e;});
   const total=t,ms=ev.map(e=>e.m),minM=Math.min(...ms)-2,maxM=Math.max(...ms)+2;
@@ -1176,7 +1423,8 @@ function viewFollow(el,l,i){
     stopAll();stopMic();$('#mic').textContent='🎤 Cantar junto';mode='done';draw(0,true);
     const tot=ev.reduce((a,e)=>a+e.tot,0),hit=ev.reduce((a,e)=>a+e.hit,0);
     if(stopped&&tot<total*.5){hint.textContent=K()?'Parou! Quando quiser, tente de novo.':'Interrompido. Tente de novo quando quiser.';mode='idle';return;}
-    const sc=tot>0?Math.round(100*hit/tot):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);saveScore(l.id,sc);
+    const sc=tot>0?Math.round(100*hit/tot):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);
+    if(opts){opts.onWin(sc);return;}saveScore(l.id,sc);
     if(sc>=pass){markDone(l.id);hint.innerHTML=`<span class="win"><span class="big">★</span>${K()?'Você cantou no ritmo!':'Melodia completa no tempo!'}</span>`;$('#after').innerHTML=nextBtn(i);wireNext(i);celebrate(i,sc);}
     else{hint.textContent=K()?'Quase! Ouça de novo e tente mais uma vez.':'Ainda não. Ouça de novo as notas vermelhas e repita.';
       if(K())guide(`Sua nota foi ${sc}. Quase lá! As notas vermelhas são as que escaparam. Vamos tentar de novo?`,'idle','force');}
