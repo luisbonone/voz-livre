@@ -1441,7 +1441,7 @@ function render(){
     <section class="hero" ${K()?'hidden':''}>${mascot()}<div>
       <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':'Prepare sua voz para louvar'}</h1>
       <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
-    ${store.get('hpOk',false)?'':`<section class="vcard daily"><div><span class="label">Antes de começar</span><b>🎧 Use fone de ouvido</b><small>O app toca a melodia enquanto você canta junto. Com fone, você escuta tudo e o microfone ouve só a sua voz.</small></div><button class="btn" id="hpok">Entendi</button></section>`}
+    ${store.get('hpOk2',false)?'':`<section class="vcard daily"><div><span class="label">Antes de começar</span><b>🎧 Use fone de ouvido, de preferência com fio</b><small>O app toca a melodia enquanto você canta junto. Com fone, você escuta tudo e o microfone ouve só a sua voz. Nas aulas cantadas, prefira <b>fone com fio</b>: no celular, o fone Bluetooth costuma ficar baixo depois que o microfone liga.</small></div><button class="btn" id="hpok">Entendi</button></section>`}
     ${homeCloudCards()}
     <div class="statrow">
       <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
@@ -1475,7 +1475,7 @@ function render(){
       ${classGuided()?'':`<button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button>`}</footer>`;
     app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide(classGuided()?'Essa aula o seu professor ainda vai liberar. Treine as que já estão abertas!':'Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
     if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
-    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');const fg=$('#freego');if(fg)fg.onclick=()=>go('livre');const hp=$('#hpok');if(hp)hp.onclick=()=>{store.set('hpOk',true);render();};
+    $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');const fg=$('#freego');if(fg)fg.onclick=()=>go('livre');const hp=$('#hpok');if(hp)hp.onclick=()=>{store.set('hpOk2',true);render();};
     if($('#unlock'))$('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
