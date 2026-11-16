@@ -296,6 +296,9 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.8}}
 @media (prefers-reduced-motion: reduce){.guide .davi,.davi *,.davi.cheer{animation:none!important}.confetti{display:none}}
 .syl{display:flex;gap:10px;align-items:flex-start;background:var(--band);border:2px dashed var(--accent);border-radius:14px;padding:10px 14px;margin:0 0 12px;font-size:.95rem}.syl span{font-size:1.3em}.syl p{margin:0}.syl small{opacity:.85}
+.bandchip{font-size:.8rem;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--band);color:var(--accent)}
+.vcard.muda details{margin-top:6px;font-size:.9rem}.vcard.muda summary{cursor:pointer;font-weight:600}.vcard.muda ul{margin:6px 0 0;padding-left:18px}
+.mudatip{margin-bottom:12px}.bandrow{margin-top:8px}.bandrow select{margin-left:6px;padding:6px;border-radius:8px}
 </style>
 
 <div class="app" id="app"></div>
@@ -314,7 +317,11 @@ const state={
   streak:store.get('streak',{n:0,last:null}), scores:store.get('scores',{}), vt:store.get('vt',null), view:'home'
 };
 const K=()=>state.mode==='kid';
-const M=(o)=>(o&&typeof o==='object'&&!Array.isArray(o))?o[state.mode]:o;
+const M=(o)=>(o&&typeof o==='object'&&!Array.isArray(o))?(o[state.mode]!==undefined?o[state.mode]:o.adult):o;
+const ageOf=b=>{if(!b)return null;const d=new Date(b+'T12:00:00'),n=new Date();if(isNaN(d))return null;let a=n.getFullYear()-d.getFullYear();if(n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate()))a--;return a;};
+const bandOfAge=a=>a==null?null:(a<12?'kid':(a<18?'teen':'adult'));
+const BAND_NM={kid:'Criança',teen:'Jovem',adult:'Adulto'};
+const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
 
 /* ---------- music helpers ---------- */
 const NAMES=['Dó','Dó#','Ré','Ré#','Mi','Fá','Fá#','Sol','Sol#','Lá','Lá#','Si'];
@@ -1122,6 +1129,48 @@ function homeLine(){
 /* ---------- cloud: accounts, progress sync, teacher panel ---------- */
 const SUPA_URL='https://wpclntveodqsshotstfo.supabase.co', SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwY2xudHZlb2Rxc3Nob3RzdGZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ3ODUwNTIsImV4cCI6MjExMDM2MTA1Mn0.M-IBeBn3LeAQOEAG2uyovqt0xYsC4OIGM_Geq8QbjtQ'; // chave pública (anon), pode ficar no site
 const cloud={sb:null,user:null,profile:null,cls:null,msgs:[],recs:[]};
+function isTeacherAcct(){return !!(cloud.user&&cloud.profile&&cloud.profile.role==='teacher');}
+function myBirth(){return (cloud.user&&cloud.profile&&cloud.profile.birth_date)||store.get('birth',null);}
+function myBand(){if(cloud.user&&cloud.profile&&cloud.profile.age_band)return cloud.profile.age_band;return bandOfAge(ageOf(myBirth()));}
+function needBirth(){if(cloudOn()&&!cloud.ready)return false;if(isTeacherAcct()||(cloud.user&&!cloud.profile))return false;if(cloud.user&&cloud.profile.age_band)return false;return !myBirth();}
+function needGuardian(){if(cloudOn()&&!cloud.ready)return false;if(!cloud.user||!cloud.profile||isTeacherAcct())return false;const a=ageOf(myBirth());return a!=null&&a<18&&!cloud.profile.guardian_name;}
+function applyBand(){if(isTeacherAcct())return;const b=myBand();if(b&&b!==state.mode){state.mode=b;store.set('mode',b);}}
+async function saveBirth(birth,guardian){store.set('birth',birth);if(!cloud.user||!cloud.profile)return null;
+  const minor=ageOf(birth)<18,upd={is_minor:minor};if(guardian){upd.guardian_name=guardian;upd.guardian_consent_at=new Date().toISOString();}
+  let r=await cloud.sb.from('profiles').update({...upd,birth_date:birth}).eq('id',cloud.user.id);
+  if(r.error)r=await cloud.sb.from('profiles').update(upd).eq('id',cloud.user.id);else cloud.profile.birth_date=birth;
+  if(!r.error)Object.assign(cloud.profile,upd);return r.error;}
+const MUDA_IDS=['head','passage','range_up','octave','belt','messa','glo1','glo2','exam3','exam4'];
+function mudaCard(){if(state.mode!=='teen')return '';const on=store.get('muda',false);
+  return `<section class="vcard muda"><div><span class="label">Fase de muda vocal</span><b>${on?'🌱 Modo muda ligado':'Sua voz está mudando?'}</b>
+    <small>${on?'Cante só onde a voz fica confortável e refaça o teste de voz todo mês: o seu tom está mudando.':'Entre os 12 e os 16 anos a voz muda, principalmente nos meninos. Se a sua voz falha, "racha" ou ficou mais grave de repente, ligue o modo muda.'}</small>
+    <details><summary>O que fazer nessa fase</summary><ul>
+      <li>É normal e passa. Não é defeito na sua voz.</li>
+      <li>Não force os agudos nem cante muito forte. Se doer ou arranhar, pare.</li>
+      <li>Treine mais na região do meio, onde a voz não falha.</li>
+      <li>Refaça o teste de voz a cada mês, porque o seu tom muda.</li>
+      <li>Beba água e durma bem. Conte ao seu professor que está nessa fase.</li></ul></details></div>
+    <button class="btn ${on?'ghost':''}" id="mudabtn">${on?'Desligar':'Ligar modo muda'}</button></section>`;}
+function wireMuda(){const b=$('#mudabtn');if(b)b.onclick=()=>{store.set('muda',!store.get('muda',false));render();};}
+function mudaTip(l){if(state.mode!=='teen'||!store.get('muda',false)||!MUDA_IDS.includes(l.id))return '';
+  return `<div class="tip mudatip"><span>🌱</span><p><b>Modo muda:</b> esta aula trabalha agudos ou força. Cante leve, só até onde for confortável. Se a voz falhar, tudo bem: tente mais tarde ou peça ajuda ao seu professor.</p></div>`;}
+function viewBirth(el){const cur=myBirth()||'',logged=!!(cloud.user&&cloud.profile);
+  el.innerHTML=`<div class="panel"><p>O app usa a idade para mostrar as aulas do jeito certo para você:</p>
+    <p>🐤 <b>Criança:</b> até 11 anos, com o canarinho Davi<br>🎧 <b>Jovem:</b> de 12 a 17 anos, com cuidado na fase em que a voz muda<br>🎤 <b>Adulto:</b> 18 anos ou mais</p>
+    <form class="form" id="bf"><label>Data de nascimento<input type="date" id="bd" required max="${todayISO()}" min="1920-01-01" value="${cur}"></label>
+    <div id="bg" class="form" hidden><label>Nome do pai, mãe ou responsável<input type="text" id="bgn" maxlength="80" value="${esc((cloud.profile&&cloud.profile.guardian_name)||'')}"></label>
+      <label class="check"><input type="checkbox" id="bgok"> Sou o responsável e autorizo o cadastro e o acompanhamento do progresso no canto pelo professor.</label></div>
+    <p class="muted" style="font-size:.85rem">Se for uma criança, peça para o pai, a mãe ou o responsável preencher.</p>
+    <p class="err" id="berr"></p><button class="btn" type="submit">Continuar</button></form>
+    ${cloudOn()&&!cloud.user?'<p class="muted" style="font-size:.9rem">Já tem conta? <button class="linkbtn" id="bacct">Entrar</button></p>':''}</div>`;
+  const ba=$('#bacct');if(ba)ba.onclick=()=>go('conta');
+  const upd=()=>{const a=ageOf($('#bd').value);$('#bg').hidden=!(logged&&a!=null&&a<18);};$('#bd').oninput=upd;upd();
+  $('#bf').onsubmit=async e=>{e.preventDefault();const v=$('#bd').value,a=ageOf(v),err=$('#berr');err.textContent='';
+    if(a==null||a<2||a>110){err.textContent='Confira a data de nascimento.';return;}
+    let g=null;if(logged&&a<18){g=$('#bgn').value.trim();if(!g||!$('#bgok').checked){err.textContent='Para menores de 18 anos, o responsável precisa preencher o nome e marcar a autorização.';return;}}
+    const b=e.submitter;if(b)b.disabled=true;const er=await saveBirth(v,g);if(b)b.disabled=false;
+    if(er&&g){err.textContent=PT_ERR(er.message);return;}
+    store.set('birthEdit',false);applyBand();go('home');};}
 try{if(SUPA_URL&&SUPA_KEY&&window.supabase)cloud.sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);}catch(e){}
 function cloudOn(){return !!cloud.sb}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1154,16 +1203,18 @@ async function loadCloud(){
     cloud.sb.from('profiles').select('*').eq('id',uid).maybeSingle(),
     cloud.sb.from('progress').select('*').eq('user_id',uid).maybeSingle(),
     cloud.sb.from('messages').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30)]);
-  cloud.profile=p.data||null;mergeProgress(pr.data);cloud.msgs=m.data||[];cloud.cls=null;
+  cloud.profile=p.data||null;mergeProgress(pr.data);
+  if(cloud.profile&&cloud.profile.role!=='teacher'&&!cloud.profile.birth_date&&store.get('birth',null))saveBirth(store.get('birth',null),null).catch(()=>{});cloud.msgs=m.data||[];cloud.cls=null;
   try{const rr=await cloud.sb.from('recordings').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30);cloud.recs=rr.data||[];}catch(e){cloud.recs=[];}
   if(cloud.profile&&cloud.profile.class_id){const c=await cloud.sb.from('classes').select('*').eq('id',cloud.profile.class_id).maybeSingle();cloud.cls=c.data||null;}
   await pushProgress();}
 async function initCloud(){
   if(!cloudOn())return;
   try{const {data}=await cloud.sb.auth.getSession();cloud.user=data.session?data.session.user:null;if(cloud.user)await loadCloud();}catch(e){}
+  cloud.ready=true;
   cloud.sb.auth.onAuthStateChange((ev,session)=>{const u=session?session.user:null;
     if((u&&u.id)!==(cloud.user&&cloud.user.id)){cloud.user=u;setTimeout(()=>loadCloud().catch(()=>{}).then(()=>{if(['home','conta'].includes(state.view))render();}),0);}});
-  if(['home','conta'].includes(state.view))render();}
+  if(['home','conta','idade'].includes(state.view)||needBirth()||needGuardian())render();}
 /* ----- student recordings for the teacher ----- */
 const lessonName=id=>{const k=idx(id);return k>=0?M(L[k].title):(id||'Gravação livre');};
 function canRecord(){return cloudOn()&&cloud.user&&cloud.profile&&cloud.profile.role!=='teacher'&&cloud.cls&&typeof MediaRecorder!=='undefined';}
@@ -1232,7 +1283,7 @@ function viewAccount(el){
   if(cloud.user){
     const p=cloud.profile||{};const msgs=cloud.msgs;
     el.innerHTML=`<div class="panel">
-      <div><span class="label">Conectado como</span><h3>${esc(p.full_name||'Aluno')}</h3><p class="muted">${esc(cloud.user.email)}</p></div>
+      <div><span class="label">Conectado como</span><h3>${esc(p.full_name||'Aluno')}</h3><p class="muted">${esc(cloud.user.email)}${p.role!=='teacher'&&BAND_NM[state.mode]?` · Faixa: ${BAND_NM[state.mode]}${p.age_band?' (definida pelo professor)':''}`:''}</p></div>
       <p class="okmsg">✓ Seu progresso é salvo automaticamente na nuvem.</p>
       ${p.role==='teacher'?`<button class="btn" id="profgo">Abrir painel do professor</button>`:
       (cloud.cls?`<div><span class="label">Sua turma</span><h3>${esc(cloud.cls.name)}</h3><p class="muted">O seu professor acompanha o seu progresso.</p></div>`:
@@ -1243,7 +1294,7 @@ function viewAccount(el){
       <div class="row"><button class="btn ghost" id="logout">Sair da conta</button></div></div>`;
     const pg=$('#profgo');if(pg)pg.onclick=()=>go('prof');
     $('#logout').onclick=async()=>{try{await cloud.sb.auth.signOut();}catch(e){}cloud.user=null;await loadCloud();
-      state.done={};state.scores={};state.streak={n:0,last:null};state.vt=null;['done','scores','streak','vt'].forEach(k=>{try{localStorage.removeItem('vozlivre.'+k)}catch(e){}});go('home');};
+      state.done={};state.scores={};state.streak={n:0,last:null};state.vt=null;['done','scores','streak','vt','birth','muda'].forEach(k=>{try{localStorage.removeItem('vozlivre.'+k)}catch(e){}});go('home');};
     const jf=$('#joinf');if(jf)jf.onsubmit=async e=>{e.preventDefault();$('#jerr').textContent='';
       const {data,error}=await cloud.sb.rpc('join_class',{class_code:$('#jcode').value});
       if(error){$('#jerr').textContent=PT_ERR(error.message);return;}await loadCloud();render();};
@@ -1262,7 +1313,7 @@ function viewAccount(el){
         <label>E-mail<input type="email" id="ne" autocomplete="email" required></label>
         <label>Senha (mínimo 6 caracteres)<input type="password" id="np" autocomplete="new-password" required minlength="6"></label>
         <label>Código da turma (opcional)<input type="text" id="nc" maxlength="8" autocomplete="off" placeholder="Peça ao seu professor" style="text-transform:uppercase"></label>
-        <label class="check"><input type="checkbox" id="nm"> Tenho menos de 18 anos</label>
+        <label>Data de nascimento<input type="date" id="nb" required max="${todayISO()}" min="1920-01-01"></label>
         <div id="minor" class="form" hidden>
           <label>Nome do pai, mãe ou responsável<input type="text" id="ng" maxlength="80"></label>
           <label class="check"><input type="checkbox" id="nok"> Sou o responsável e autorizo o cadastro e o acompanhamento do progresso no canto pelo professor.</label>
@@ -1276,16 +1327,18 @@ function viewAccount(el){
       if(b)b.disabled=false;if(error){$('#lerr').textContent=PT_ERR(error.message);return;}
       cloud.user=data.user;await loadCloud().catch(()=>{});go(cloud.profile&&cloud.profile.role==='teacher'?'prof':'home');};}
     else{
-      $('#nm').onchange=()=>{$('#minor').hidden=!$('#nm').checked;};
+      $('#nb').oninput=()=>{const a=ageOf($('#nb').value);$('#minor').hidden=!(a!=null&&a<18);};
       $('#nf').onsubmit=async e=>{e.preventDefault();const err=$('#nerr');err.textContent='';
-        const minor=$('#nm').checked,guardian=$('#ng').value.trim();
+        const birth=$('#nb').value,age=ageOf(birth);if(age==null||age<2||age>110){err.textContent='Confira a data de nascimento.';return;}
+        const minor=age<18,guardian=$('#ng').value.trim();
         if(minor&&(!guardian||!$('#nok').checked)){err.textContent='Para menores de 18 anos, o responsável precisa preencher o nome e marcar a autorização.';return;}
         const b=e.submitter;if(b)b.disabled=true;
         const {data,error}=await cloud.sb.auth.signUp({email:$('#ne').value.trim(),password:$('#np').value,options:{data:{full_name:$('#nn').value.trim()}}});
         if(error){if(b)b.disabled=false;err.textContent=PT_ERR(error.message);return;}
         if(!data.session){if(b)b.disabled=false;err.className='okmsg';err.textContent='Conta criada! Confira seu e-mail para confirmar e depois entre.';return;}
         cloud.user=data.user;
-        await cloud.sb.from('profiles').update({full_name:$('#nn').value.trim(),is_minor:minor,guardian_name:minor?guardian:null,guardian_consent_at:minor?new Date().toISOString():null}).eq('id',data.user.id);
+        store.set('birth',birth);const pu={full_name:$('#nn').value.trim(),is_minor:minor,guardian_name:minor?guardian:null,guardian_consent_at:minor?new Date().toISOString():null};
+        const r1=await cloud.sb.from('profiles').update({...pu,birth_date:birth}).eq('id',data.user.id);if(r1.error)await cloud.sb.from('profiles').update(pu).eq('id',data.user.id);
         const code=$('#nc').value.trim();let joinErr=null;
         if(code){const r=await cloud.sb.rpc('join_class',{class_code:code});if(r.error)joinErr=PT_ERR(r.error.message);}
         await loadCloud().catch(()=>{});
@@ -1401,7 +1454,7 @@ async function profLoadClasses(){
   if(!prof.sel&&prof.classes.length)prof.sel=prof.classes[0].id;}
 async function profLoadStudents(){
   prof.students=[];prof.prog={};prof.msgs=[];prof.recs=[];if(!prof.sel)return;
-  const s=await cloud.sb.from('profiles').select('id,full_name,email,is_minor,guardian_name,created_at').eq('class_id',prof.sel).eq('role','student').order('full_name');
+  const s=await cloud.sb.from('profiles').select('*').eq('class_id',prof.sel).eq('role','student').order('full_name');
   prof.students=s.data||[];const ids=prof.students.map(x=>x.id);if(!ids.length)return;
   const [pr,ms]=await Promise.all([cloud.sb.from('progress').select('*').in('user_id',ids),
     cloud.sb.from('messages').select('*').eq('teacher_id',cloud.user.id).in('student_id',ids).order('created_at',{ascending:false})]);
@@ -1426,7 +1479,7 @@ function viewTeacher(el){
       <div class="statrow"><div class="stat"><b>${rows.length}</b><small>alunos</small></div><div class="stat"><b>${active}</b><small>treinaram nesta semana</small></div><div class="stat"><b>${attention}</b><small>precisam de atenção</small></div><div class="stat"><b>🎙️ ${pendingAll}</b><small>gravações para ouvir</small></div></div>
     </div>
     ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Nível</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Tarefa</th><th>Voz</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${r.st.is_minor?' <small class="muted">(menor)</small>':''}${(n=>n?` <span class="chip warn">🎙️ ${n}</span>`:'')(prof.recs.filter(x=>x.student_id===r.st.id&&!x.reviewed_at).length)}</td>
+      ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${(b=>b?` <small class="muted">(${BAND_NM[b]})</small>`:(r.st.is_minor?' <small class="muted">(menor)</small>':''))(r.st.age_band||bandOfAge(ageOf(r.st.birth_date)))}${(n=>n?` <span class="chip warn">🎙️ ${n}</span>`:'')(prof.recs.filter(x=>x.student_id===r.st.id&&!x.reviewed_at).length)}</td>
         <td><span class="chip ${r.cls}">${r.status}</span></td><td>${studentLevel(r.pr.done)} · ${LEVELS[studentLevel(r.pr.done)-1].title}</td>
         <td><span class="minibar"><b style="width:${Math.round(r.done/L.length*100)}%"></b></span>${r.done}/${L.length}</td>
         <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${(hl=>hl.length?`${hl.filter(id=>(r.pr.done||{})[id]).length}/${hl.length}`:'–')(c.homework&&Array.isArray(c.homework.lessons)?c.homework.lessons:[])}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
@@ -1450,7 +1503,10 @@ function drawDetail(el,r){
   const low=L.filter(l=>sc[l.id]!=null&&sc[l.id]<60);if(low.length)tips.push(`Nota baixa em: ${low.map(l=>l.title.adult).join(', ')}.`);
   if(!pr.vt)tips.push('Ainda não fez o teste de voz.');
   el.innerHTML=`<div class="panel"><div><span class="label">Aluno</span><h3>${esc(st.full_name||st.email)}</h3>
-      <p class="muted">${esc(st.email)}${st.is_minor?` · Menor de idade, responsável: ${esc(st.guardian_name||'–')}`:''} · na turma desde ${new Date(st.created_at).toLocaleDateString('pt-BR')}</p></div>
+      <p class="muted">${esc(st.email)}${ageOf(st.birth_date)!=null?` · ${ageOf(st.birth_date)} anos`:''}${st.is_minor?` · Menor de idade, responsável: ${esc(st.guardian_name||'–')}`:''} · na turma desde ${new Date(st.created_at).toLocaleDateString('pt-BR')}</p>
+      <div class="row bandrow"><label>Faixa do aluno <select id="bandsel">
+        <option value="">Automática pela idade${(a=>a!=null?` (${BAND_NM[bandOfAge(a)]})`:' (sem data de nascimento)')(ageOf(st.birth_date))}</option>
+        ${['kid','teen','adult'].map(b=>`<option value="${b}" ${st.age_band===b?'selected':''}>${BAND_NM[b]}</option>`).join('')}</select></label><span id="bandmsg" class="muted"></span></div></div>
     ${tips.length?`<div class="tip"><span>💡</span><p>${tips.map(esc).join(' ')}</p></div>`:''}
     <div class="detail"><div><span class="label">Aulas</span><ul class="lessonlist">${L.map((l,k)=>`<li><span>${k+1}. ${esc(l.title.adult)}</span><span>${dn[l.id]?'✓':''}${sc[l.id]!=null?` ${sc[l.id]}`:''}</span></li>`).join('')}</ul>
       ${pr.vt?`<p><b>Voz:</b> ${esc(pr.vt.cls)}, de ${nmo(pr.vt.low)} até ${nmo(pr.vt.high)}</p>`:''}${pr.last_lesson&&idx(pr.last_lesson)>=0?`<p><b>Última aula aberta:</b> ${esc(L[idx(pr.last_lesson)].title.adult)}</p>`:''}</div>
@@ -1472,6 +1528,10 @@ function drawDetail(el,r){
     li.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{const upd={teacher_comment:li.querySelector('textarea').value.trim()||null,approved:b.dataset.ok==='1',reviewed_at:new Date().toISOString()};
       const r3=await cloud.sb.from('recordings').update(upd).eq('id',rec.id);if(r3.error){li.querySelector('.err').textContent=PT_ERR(r3.error.message);return;}
       Object.assign(rec,upd);viewTeacher(document.querySelector('#body'));});});
+  $('#bandsel').onchange=async ev=>{const v=ev.target.value||null,m=$('#bandmsg');m.className='muted';m.textContent='Salvando...';
+    const {error}=await cloud.sb.rpc('set_student_band',{student:st.id,band:v});
+    if(error){m.className='err';m.textContent=/set_student_band|function/i.test(error.message)?'Falta rodar o script schema_v4_faixas.sql no Supabase.':PT_ERR(error.message);return;}
+    st.age_band=v;m.className='okmsg';m.textContent='Salvo. Vale na próxima vez que o aluno abrir o app.';};
   $('#mf').onsubmit=async e=>{e.preventDefault();const body=$('#mb').value.trim();if(!body)return;
     const r2=await cloud.sb.from('messages').insert({teacher_id:cloud.user.id,student_id:st.id,body}).select().single();
     if(r2.error){$('#merr').textContent=PT_ERR(r2.error.message);return;}prof.msgs.unshift(r2.data);drawDetail(el,r);};
@@ -1482,13 +1542,17 @@ let cleanup=null;
 function go(view){if(cleanup){cleanup();cleanup=null;}stopTones();if(idx(view)>=0&&!isUnlocked(idx(view)))view='home';stopSpeak();lastSay='';lastMood='';state.view=view;if(idx(view)>=0){state.lastLesson=view;schedulePush();}if(view==='prof')prof.loaded=false;render();window.scrollTo(0,0);}
 
 function render(){
+  applyBand();
+  if((needBirth()||needGuardian())&&!['conta','idade'].includes(state.view))state.view='idade';
+  if(state.view==='idade'&&!needBirth()&&!needGuardian()&&!store.get('birthEdit',false))state.view='home';
   document.body.classList.toggle('kid',K());
   const app=$('#app');
   const head=`<header class="top">
     <div class="brand"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/></svg></div><b>Voz Livre</b></div>
-    <div class="seg" role="group" aria-label="Modo">
-      <button id="m-kid" aria-pressed="${K()}">Criança</button>
-      <button id="m-adult" aria-pressed="${!K()}">Adulto</button></div>
+    ${isTeacherAcct()?`<div class="seg" role="group" aria-label="Ver o app como">
+      <button id="m-kid" data-m="kid" aria-pressed="${state.mode==='kid'}">Criança</button>
+      <button id="m-teen" data-m="teen" aria-pressed="${state.mode==='teen'}">Jovem</button>
+      <button id="m-adult" data-m="adult" aria-pressed="${state.mode==='adult'}">Adulto</button></div>`:''}
     <button class="acct" id="volbtn" aria-label="${VOLS[volIdx].t}" title="${VOLS[volIdx].t}">${VOLS[volIdx].i}</button>
     ${cloudOn()?`<button class="acct" id="acct" aria-label="Minha conta">${cloud.user?'👤 '+esc(firstName()):'Entrar'}</button>`:''}</header>`;
   document.body.classList.toggle('wide',state.view==='prof');
@@ -1498,10 +1562,11 @@ function render(){
     app.innerHTML=head+`
     ${K()?guideHTML(homeLine(),'happy'):''}
     <section class="hero" ${K()?'hidden':''}>${mascot()}<div>
-      <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':'Prepare sua voz para louvar'}</h1>
+      <h1>${K()?'Oi, cantor! Vamos aprender a louvar cantando?':(state.mode==='teen'?'Bora treinar a voz para louvar?':'Prepare sua voz para louvar')}</h1>
       <p class="muted">${K()?'Cada aula vale uma estrela. Complete uma para liberar a próxima!':'Uma aula por dia, alguns minutos de cada vez. Complete cada aula para liberar a próxima.'}</p></div></section>
     ${store.get('hpOk2',false)?'':`<section class="vcard daily"><div><span class="label">Antes de começar</span><b>🎧 Use fone de ouvido, de preferência com fio</b><small>O app toca a melodia enquanto você canta junto. Com fone, você escuta tudo e o microfone ouve só a sua voz. Nas aulas cantadas, prefira <b>fone com fio</b>: no celular, o fone Bluetooth costuma ficar baixo depois que o microfone liga.</small></div><button class="btn" id="hpok">Entendi</button></section>`}
     ${homeCloudCards()}
+    ${mudaCard()}
     <div class="statrow">
       <div class="stat"><b>★ ${stars}</b><small>de ${L.length} estrelas</small></div>
       <div class="stat"><b>🔥 ${streakNow()}</b><small>${streakNow()===1?'dia seguido':'dias seguidos'}</small></div>
@@ -1531,10 +1596,11 @@ function render(){
       </div></section>`}).join('')}</section>`}).join('')}
     <p class="verse">"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras." Salmo 96:1</p>
     <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão<br>
-      ${classGuided()?'':`<button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button>`}</footer>`;
+      ${!cloud.user?`<button class="linkbtn" id="bedit">Faixa: ${BAND_NM[state.mode]} · mudar a data de nascimento</button><br>`:''}${classGuided()?'':`<button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button>`}</footer>`;
     app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide(classGuided()?'Essa aula o seu professor ainda vai liberar. Treine as que já estão abertas!':'Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
     if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
     $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');const fg=$('#freego');if(fg)fg.onclick=()=>go('livre');const hp=$('#hpok');if(hp)hp.onclick=()=>{store.set('hpOk2',true);render();};
+    if($('#bedit'))$('#bedit').onclick=()=>{store.set('birthEdit',true);go('idade');};wireMuda();
     if($('#unlock'))$('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
@@ -1550,6 +1616,10 @@ function render(){
   } else if(state.view==='livre'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">Qualquer louvor</span><h2>Cante seu louvor</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewFree($('#body'));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();
+  } else if(state.view==='idade'){
+    app.innerHTML=head+`${store.get('birthEdit',false)?'<button class="back" id="back">← Voltar à trilha</button>':''}<div><span class="label">Antes de começar</span><h2>${needGuardian()&&!needBirth()?'Autorização do responsável':'Quando você nasceu?'}</h2></div><div id="body"></div>`;
+    if($('#back'))$('#back').onclick=()=>{store.set('birthEdit',false);go('home');};
+    viewBirth($('#body'));
   } else if(state.view==='voicetest'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">1 minuto</span><h2>Teste de voz</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');viewVoiceTest($('#body'));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();
@@ -1559,14 +1629,13 @@ function render(){
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');if(isTeacher()&&prof.tab==='aulas'){$('#back').textContent='← Voltar ao painel';$('#back').onclick=()=>go('prof');}
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
-    if(['seq','follow','sustain','dyn','vib','exam'].includes(l.type)){const sp=$('#body .panel')||$('#body');sp.insertAdjacentHTML('afterbegin',sylHTML(l));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();}
+    if(['seq','follow','sustain','dyn','vib','exam'].includes(l.type)){const sp=$('#body .panel')||$('#body');sp.insertAdjacentHTML('afterbegin',sylHTML(l)+mudaTip(l));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();}
     if((['seq','follow','sustain','dyn','vib'].includes(l.type)||(l.type==='guided'&&l.sung))&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
   const vb=$('#volbtn');if(vb)vb.onclick=()=>{setVol((volIdx+1)%3);vb.textContent=VOLS[volIdx].i;vb.title=vb.ariaLabel=VOLS[volIdx].t;ctx();stopTones();playTone(523.25,.5);};
   const ab=$('#acct');if(ab)ab.onclick=()=>go(cloud.profile&&cloud.profile.role==='teacher'&&state.view!=='prof'?'prof':'conta');
-  $('#m-kid').onclick=()=>{state.mode='kid';store.set('mode','kid');go(state.view)};
-  $('#m-adult').onclick=()=>{state.mode='adult';store.set('mode','adult');go(state.view)};
+  document.querySelectorAll('header [data-m]').forEach(b=>b.onclick=()=>{state.mode=b.dataset.m;store.set('mode',state.mode);go(state.view)});
 }
 
 /* ---------- breathing ---------- */
