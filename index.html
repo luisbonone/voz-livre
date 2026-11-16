@@ -1614,14 +1614,15 @@ function viewSustain(el,l,i){
 function viewSeq(el,l,i,opts){
   const base=baseNote(l),notes=l.steps.map(s=>base+s),tol=K()?45:30;
   const hold=l.hold?M(l.hold):(K()?.6:.8);
-  const single=notes.length===1;
+  const single=notes.length===1,guided=!single&&!l.chord,doAll=guided&&notes.length<=8;
   el.innerHTML=`<div class="panel">${tipBox(l)}
+    ${guided?`<p class="label" id="phase" style="text-align:center">${doAll?'Passo 1: uma nota de cada vez · Passo 2: todas juntas':'Uma nota de cada vez: ouça e cante'}</p>`:''}
     ${single?'':`<div class="seqdots" id="dots">${notes.map((m,k)=>`<span>${l.lyrics?(l.lyrics[k]||'~').replace(/-$/,''):(l.labels?l.labels[k]:nm(m))}</span>`).join('')}</div>`}
     <div class="target"><span class="note" id="tn"></span><small id="hz"></small></div>
     <div class="row" style="justify-content:center"><button class="btn ghost" id="play">▶ ${l.chord?'Ouvir o acorde':(single?'Ouvir a nota':'Ouvir a melodia')}</button><button class="btn" id="mic">🎤 Cantar</button></div>
     <canvas id="cv" aria-label="Gráfico da sua voz em relação à nota alvo"></canvas>
     <div><div class="meter"><i id="needle"></i></div><div class="meterlab"><span>Baixo</span><span>Na nota</span><span>Alto</span></div></div>
-    <p class="hint" id="hint">${single?'Escute a nota e toque em Cantar':'Escute a melodia e toque em Cantar'}</p>
+    <p class="hint" id="hint">${single?'Escute a nota e toque em Cantar':(guided?'Toque em Cantar: o app toca cada nota e você repete':'Escute a melodia e toque em Cantar')}</p>
     <div class="progress" aria-label="Tempo segurando a nota"><b id="pg"></b></div>
     ${l.showHold?'<p class="holdinfo" id="holdinfo">Afinado sem parar: 0,0s · Recorde: –</p>':''}
     <p class="muted" style="text-align:center;font-size:.9rem" id="you">Sua voz: –</p>
@@ -1630,7 +1631,7 @@ function viewSeq(el,l,i,opts){
     ${demoBox('Arraste para simular a voz e ver como o app reage.')}
     <div class="row" style="justify-content:center" id="after"></div></div>`;
   const cv=$('#cv'),g=cv.getContext('2d'),needle=$('#needle'),hint=$('#hint'),pg=$('#pg'),you=$('#you'),dots=[...el.querySelectorAll('#dots span')];
-  let raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0,stepT=0,moodT=0,voiced=0,inT=0,absSum=0,run=0,outT=0,bestRun=store.get('hold.'+l.id,0);
+  let phase='one',raf=null,trail=[],held=0,last=performance.now(),won=false,demo=false,listening=false,smooth=null,step=0,needGap=false,gapT=0,muteUntil=0,stepT=0,moodT=0,voiced=0,inT=0,absSum=0,run=0,outT=0,bestRun=store.get('hold.'+l.id,0);
   const fmt=x=>x.toFixed(1).replace('.',',');
   function holdInfo(){const h=$('#holdinfo');if(h)h.textContent=`Afinado sem parar: ${fmt(run)}s · Recorde: ${bestRun?fmt(bestRun)+'s':'–'}`;}
   holdInfo();
@@ -1642,16 +1643,27 @@ function viewSeq(el,l,i,opts){
     else if(kind==='next')guide(l.labels?`Agora a vogal ${l.labels[step]}!`:(l.lyrics&&l.lyrics[step]?`Agora: "${l.lyrics[step].replace(/[,.;-]/g,'')}"!`:`Agora a nota ${nm(notes[step])}!`),'happy'); }
   const H={up:K()?'Sobe um pouquinho! ⬆':'Um pouco abaixo: suba ⬆',down:K()?'Desce um pouquinho! ⬇':'Um pouco acima: desça ⬇',
     ok:K()?'Isso! Segura assim!':'Afinado. Sustente!',silent:K()?'Cante "lá" quando quiser':'Cante quando estiver pronto',gap:K()?'Respira... e a próxima!':'Pausa curta... próxima nota'};
+  const holdNow=()=>phase==='all'?Math.max(.35,hold*.6):hold;
+  // guided prompt: the app plays the note (or, in step 2, all notes) with the mic paused, then listens again
+  function prompt(){if(!guided)return;if(mic)stopMic();held=0;pg.style.width='0%';let dur;
+    if(phase==='one'){playTone(midiToHz(notes[step]),1.3);dur=1.3;hint.textContent=K()?`Escute a nota ${nm(notes[step])}...`:`Ouça: ${nm(notes[step])}...`;}
+    else{notes.forEach((m,k)=>playTone(midiToHz(m),.8,null,k*.95));dur=notes.length*.95;hint.textContent=K()?'Escute todas juntas...':'Ouça a sequência inteira...';}
+    muteUntil=performance.now()+dur*1000+250;lockBtn($('#play'),dur);
+    if(!demo)setTimeout(async()=>{if(listening&&!mic&&!won){if(!await startMic()){demo=true;$('#demo').hidden=false;}}},dur*1000+250);}
   function show(){const m=notes[step];$('#tn').textContent=l.lyrics?`${(l.lyrics[step]||'~').replace(/[,.;-]/g,'')} · ${nm(m)}`:(l.labels?`${l.labels[step]} · ${nm(m)}`:nm(m));$('#hz').textContent=Math.round(midiToHz(m))+' Hz';
     dots.forEach((d,k)=>d.className=k<step?'ok':(k===step?'cur':''));}
   show();
-  $('#play').onclick=()=>{const pb=$('#play'),had=!!mic;if(had)stopMic();const back=sec=>{lockBtn(pb,sec);if(had)setTimeout(()=>{if(listening&&!mic&&!won)startMic();},sec*1000+250);};
+  $('#play').onclick=()=>{if(guided&&listening&&!won){prompt();return;}
+    if(guided&&!listening){const pb=$('#play');notes.forEach((m,k)=>playTone(midiToHz(m),.75,null,k*.85));lockBtn(pb,notes.length*.85);return;}
+    const pb=$('#play'),had=!!mic;if(had)stopMic();const back=sec=>{lockBtn(pb,sec);if(had)setTimeout(()=>{if(listening&&!mic&&!won)startMic();},sec*1000+250);};
     if(l.chord){l.chord.forEach(s=>playTone(midiToHz(base+s),1.8,null,0,.14));muteUntil=performance.now()+1950;back(1.8);return;}const dur=single?1.4:.55;
     if(single){playTone(midiToHz(notes[0]),dur);muteUntil=performance.now()+dur*1000+150;back(dur);return;}
     notes.forEach((m,k)=>playTone(midiToHz(m),dur-.05,null,k*dur));muteUntil=performance.now()+notes.length*dur*1000+150;back(notes.length*dur);};
   $('#mic').onclick=async()=>{ctx();
     if(listening){listening=false;stopMic();$('#mic').textContent='🎤 Cantar';hint.textContent=H.silent;return;}
-    won=false;step=0;held=0;trail=[];needGap=false;gapT=0;stepT=0;moodT=0;voiced=0;inT=0;absSum=0;run=0;outT=0;smooth=null;pg.style.width='0%';$('#scorebox').innerHTML='';if(!opts)$('#after').innerHTML='';show();if(!await startMic()){demo=true;$('#demo').hidden=false;}
+    won=false;phase='one';step=0;held=0;trail=[];needGap=false;gapT=0;stepT=0;moodT=0;voiced=0;inT=0;absSum=0;run=0;outT=0;smooth=null;pg.style.width='0%';$('#scorebox').innerHTML='';if(!opts)$('#after').innerHTML='';show();
+    if(guided){listening=true;$('#mic').textContent='■ Parar';prompt();if(!raf)loop();return;}
+    if(!await startMic()){demo=true;$('#demo').hidden=false;}
     listening=true;$('#mic').textContent='■ Parar';hint.textContent=H.silent;if(!raf)loop();};
   function draw(cents){
     const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
@@ -1683,6 +1695,7 @@ function viewSeq(el,l,i,opts){
     else{smooth=null;if(listening)you.textContent='Sua voz: –';}
     trail.push(cents);if(trail.length>160)trail.shift();
     needle.style.left=(cents==null?50:50+Math.max(-100,Math.min(100,cents))/2)+'%';
+    if(!won&&listening&&guided&&now<muteUntil){pg.style.width='0%';draw(null);return;}
     if(!won&&listening){
       if(needGap){if(cents==null){gapT+=dt;if(gapT>=.25)needGap=false;}hint.textContent=H.gap;pg.style.width='0%';draw(cents);return;}
       stepT+=dt;
@@ -1693,8 +1706,11 @@ function viewSeq(el,l,i,opts){
       if(cents==null){hint.textContent=H.silent;held=Math.max(0,held-dt*.5);}
       else if(Math.abs(cents)<=tol){hint.textContent=H.ok;held+=dt;react('ok');}
       else{hint.textContent=cents<0?H.up:H.down;held=Math.max(0,held-dt*.3);react(stepT>9?'help':(cents<0?'up':'down'));}
-      pg.style.width=Math.min(100,held/hold*100)+'%';
-      if(held>=hold){held=0;step++;
+      pg.style.width=Math.min(100,held/holdNow()*100)+'%';
+      if(held>=holdNow()){held=0;step++;
+        if(guided&&phase==='one'&&step<notes.length){show();trail=[];stepT=0;moodT=0;prompt();draw(cents);return;}
+        if(doAll&&phase==='one'&&step>=notes.length){phase='all';step=0;show();trail=[];stepT=0;moodT=0;
+          $('#phase').textContent=K()?'Passo 2: agora todas juntas!':'Passo 2: a sequência inteira';prompt();draw(cents);return;}
         if(step>=notes.length){won=true;step=notes.length-1;dots.forEach(d=>d.className='ok');if(!opts)markDone(l.id);
           const sc=voiced>0?Math.round(100*(.6*inT/voiced+.4*Math.max(0,1-absSum/voiced/100))):0;$('#scorebox').innerHTML=scoreHTML(sc,l.id);if(!opts)saveScore(l.id,sc);
           hint.innerHTML=`<span class="win"><span class="big">★</span>${single?(K()?'Você acertou a nota!':'Nota sustentada com afinação!'):(K()?'Você cantou tudinho!':'Sequência completa e afinada!')}</span>`;
@@ -1713,7 +1729,7 @@ const INTS=[[0,'Mesma nota','Igual'],[2,'Passo (2ª)','Passinho'],[4,'Terça (3�
 function viewEar(el,l,i,opts){
   const n=l.n||8,mode=l.mode,b=baseNote(l),pass=(opts&&opts.pass)||75;
   const qs=[];for(let k=0;k<n;k++){
-    if(mode==='hl'){const a=b+Math.floor(Math.random()*8);const pool=K()?[-5,-4,-3,3,4,5,0]:[-4,-3,-2,-1,1,2,3,4,0,0];const d=pool[Math.floor(Math.random()*pool.length)];qs.push({a,b2:a+d,ans:d>0?0:(d<0?2:1)});}
+    if(mode==='hl'){const a=b+Math.floor(Math.random()*8);const pool=K()?[-5,-4,-3,3,4,5,0,0]:[-5,-4,-3,-2,2,3,4,5,0,0];const d=pool[Math.floor(Math.random()*pool.length)];qs.push({a,b2:a+d,ans:d>0?0:(d<0?2:1)});}
     else{const a=b+Math.floor(Math.random()*5);const it=Math.floor(Math.random()*INTS.length);qs.push({a,b2:a+INTS[it][0],ans:it});}}
   const labels=mode==='hl'?(K()?['Mais fininho ⬆','Igual','Mais grossinho ⬇']:['Mais aguda ⬆','Igual','Mais grave ⬇']):INTS.map(x=>K()?x[2]:x[1]);
   let k=0,right=0,answered=false;
@@ -1731,8 +1747,9 @@ function viewEar(el,l,i,opts){
   $('#play').onclick=()=>{ctx();play();lockBtn($('#play'),1.8);};
   el.querySelectorAll('#ch button').forEach(bt=>bt.onclick=()=>{if(answered)return;answered=true;const j=+bt.dataset.j,q=qs[k];
     el.querySelectorAll('#ch button').forEach(x=>x.disabled=true);
-    if(j===q.ans){right++;bt.className='right';$('#hint').textContent=K()?'Acertou! 🎉':'Correto!';if(K())guide(['Muito bem!','Isso aí!','Ouvido de ouro!'][k%3],'happy');}
-    else{bt.className='wrong';el.querySelector(`#ch button[data-j="${q.ans}"]`).className='right';$('#hint').textContent=`A resposta era: ${labels[q.ans]}. Ouça de novo.`;if(K())guide('Quase! Toque em Ouvir de novo para comparar.','think');}
+    const names=`1ª nota: ${nm(q.a)} · 2ª nota: ${nm(q.b2)}`;
+    if(j===q.ans){right++;bt.className='right';$('#hint').textContent=(K()?'Acertou! 🎉 ':'Correto! ')+names;if(K())guide(['Muito bem!','Isso aí!','Ouvido de ouro!'][k%3],'happy');}
+    else{bt.className='wrong';el.querySelector(`#ch button[data-j="${q.ans}"]`).className='right';$('#hint').textContent=`A resposta era: ${labels[q.ans]} (${names}). Ouça de novo.`;if(K())guide('Quase! Toque em Ouvir de novo para comparar.','think');}
     $('#nextq').hidden=false;$('#nextq').textContent=k+1<n?'Próxima →':'Ver resultado';});
   $('#nextq').onclick=()=>{k++;if(k<n){show();ctx();play();return;}
     const sc=Math.round(right/n*100);$('#ch').hidden=true;$('#play').hidden=true;$('#nextq').hidden=true;$('#qc').textContent=`${right} de ${n} certas`;
