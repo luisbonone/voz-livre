@@ -926,7 +926,7 @@ function streakNow(){const s=state.streak;if(!s.last)return 0;const y=new Date()
 /* ---------- audio ---------- */
 let actx=null;
 // all app sounds go through a master gain + compressor: louder on phone speakers and headphones, without distortion
-const VOLS=[{g:1.6,i:'🔉',t:'Volume normal'},{g:2.6,i:'🔊',t:'Volume alto'},{g:4,i:'📢',t:'Volume máximo'}];
+const VOLS=[{g:1.6,i:'🔉 Normal',t:'Volume normal'},{g:2.6,i:'🔊 Alto',t:'Volume alto'},{g:4,i:'📢 Máximo',t:'Volume máximo'}];
 let volIdx=(()=>{try{const v=+JSON.parse(localStorage.getItem('vozlivre.vol'));return v>=0&&v<3?v:1;}catch(e){return 1;}})(),master=null;
 function ctx(){if(!actx){actx=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'});
     const comp=actx.createDynamicsCompressor();comp.threshold.value=-3;comp.knee.value=3;comp.ratio.value=20;comp.attack.value=.003;comp.release.value=.2;
@@ -948,7 +948,24 @@ function playTone(hz,dur=1.4,glideTo=null,when=0,vol=.25){
 let mic=null;
 async function startMic(){
   if(mic)return true;
-  try{const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  // With Bluetooth headphones, opening the headset's own mic forces it into "call mode" (low, muffled sound).
+  // So we prefer the phone's built-in mic: the headphones keep playing at normal music quality.
+  const base={echoCancellation:false,noiseSuppression:false,autoGainControl:false},gum=a=>navigator.mediaDevices.getUserMedia({audio:a});
+  const isBT=d=>/bluetooth|headset|sco|buds|airpods|hands.?free|wireless|\bbt\b/i.test((d&&d.label)||'');
+  try{let stream=null,saved=null;try{saved=localStorage.getItem('vozlivre.micId');}catch(e){}
+    if(saved){try{stream=await gum({...base,deviceId:{exact:saved}});}catch(e){stream=null;}}
+    if(!stream){try{const ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+        if(ds.some(d=>d.label)&&ds.some(isBT)){const alt=ds.filter(d=>!isBT(d)&&d.deviceId&&!['default','communications'].includes(d.deviceId));
+          const pick=alt.find(d=>/speaker|built|phone|interno|bottom|mic/i.test(d.label))||alt[0];
+          if(pick){stream=await gum({...base,deviceId:{exact:pick.deviceId}});try{localStorage.setItem('vozlivre.micId',pick.deviceId);}catch(e){}}}}catch(e){stream=null;}}
+    if(!stream){stream=await gum(base);
+      try{const ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+        const curId=stream.getAudioTracks()[0].getSettings().deviceId,cur=ds.find(d=>d.deviceId===curId);
+        if(ds.some(isBT)&&(!cur||isBT(cur)||curId==='default')){
+          const alt=ds.filter(d=>!isBT(d)&&d.deviceId&&!['default','communications'].includes(d.deviceId));
+          const pick=alt.find(d=>/speaker|built|phone|interno|bottom|mic/i.test(d.label))||alt[0];
+          if(pick){stream.getTracks().forEach(t=>t.stop());stream=await gum({...base,deviceId:{exact:pick.deviceId}});try{localStorage.setItem('vozlivre.micId',pick.deviceId);}catch(e){}}}
+      }catch(e){}}
     const c=ctx(),src=c.createMediaStreamSource(stream),an=c.createAnalyser();an.fftSize=2048;src.connect(an);
     mic={analyser:an,buf:new Float32Array(an.fftSize),stream};return true;}catch(e){return false;}
 }
