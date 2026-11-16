@@ -242,6 +242,21 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .detail{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .detail>div{min-width:0;display:flex;flex-direction:column;gap:10px}
 @media (max-width:720px){.detail{grid-template-columns:1fr}}
+.tabs2{display:flex;gap:8px;flex-wrap:wrap}
+.tabs2 button{border:0;background:var(--surface);border-bottom:3px solid transparent;padding:8px 6px;font-weight:800;color:var(--muted);font:inherit;font-weight:800}
+.tabs2 button[aria-pressed="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.course{display:flex;flex-direction:column;gap:6px}
+.course h4{margin:14px 0 2px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.crow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:var(--surface)}
+.crow.rel{border-color:var(--accent)}
+.crow .nm{flex:1 1 200px;min-width:0}
+.crow .nm small{display:block;color:var(--muted);font-weight:600}
+.crow label{display:flex;gap:6px;align-items:center;font-weight:700;font-size:.9rem;white-space:nowrap}
+.crow .btn{padding:6px 12px;font-size:.88rem}
+.roteiro{flex-basis:100%;background:var(--bg);border-radius:10px;padding:10px 12px;font-size:.93rem}
+.roteiro h5{margin:8px 0 4px;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.roteiro ul,.roteiro ol{margin:0;padding-left:1.2em}
+.hwcard{border:2px solid var(--sun)}
 .lessonlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.93rem}
 .lessonlist li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
 .lessonlist li span:last-child{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
@@ -876,7 +891,13 @@ L.sort((a,b)=>ORD_KEYS.indexOf(a.id)-ORD_KEYS.indexOf(b.id));
 const levelOf=l=>(UNITS.find(u=>u.id===l.unit)||{}).level;
 function studentLevel(done){return done&&done.exam4?5:done&&done.exam3?4:(done&&done.exam2?3:(done&&done.exam1?2:1));}
 const idx=id=>L.findIndex(l=>l.id===id);
-const isUnlocked=i=>state.unlockAll||i===0||!!state.done[L[i-1].id]||L.slice(i).some(x=>state.done[x.id]);
+function isTeacher(){return typeof cloud!=='undefined'&&cloud.profile&&cloud.profile.role==='teacher';}
+function classGuided(){return typeof cloud!=='undefined'&&cloud.user&&cloud.cls&&cloud.cls.guided===true&&!isTeacher();}
+function hwList(){const h=classGuided()||(typeof cloud!=='undefined'&&cloud.cls&&!isTeacher())?cloud.cls.homework:null;return h&&Array.isArray(h.lessons)?h.lessons.filter(id=>idx(id)>=0):[];}
+function released(id){return !!(cloud.cls&&Array.isArray(cloud.cls.released)&&cloud.cls.released.includes(id))||hwList().includes(id);}
+const isUnlocked=i=>{if(state.unlockAll||isTeacher())return true;
+  if(classGuided())return !!state.done[L[i].id]||released(L[i].id);
+  return i===0||!!state.done[L[i-1].id]||L.slice(i).some(x=>state.done[x.id]);};
 
 function saveScore(id,v){if(!(state.scores[id]>=v)){state.scores[id]=v;store.set('scores',state.scores);}}
 function scoreLabel(v){return v>=90?'Excelente!':v>=75?'Muito bom!':v>=60?'Bom!':'Continue praticando'}
@@ -1049,7 +1070,7 @@ async function loadCloud(){
     cloud.sb.from('messages').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30)]);
   cloud.profile=p.data||null;mergeProgress(pr.data);cloud.msgs=m.data||[];cloud.cls=null;
   try{const rr=await cloud.sb.from('recordings').select('*').eq('student_id',uid).order('created_at',{ascending:false}).limit(30);cloud.recs=rr.data||[];}catch(e){cloud.recs=[];}
-  if(cloud.profile&&cloud.profile.class_id){const c=await cloud.sb.from('classes').select('id,name').eq('id',cloud.profile.class_id).maybeSingle();cloud.cls=c.data||null;}
+  if(cloud.profile&&cloud.profile.class_id){const c=await cloud.sb.from('classes').select('*').eq('id',cloud.profile.class_id).maybeSingle();cloud.cls=c.data||null;}
   await pushProgress();}
 async function initCloud(){
   if(!cloudOn())return;
@@ -1103,7 +1124,14 @@ function homeCloudCards(){
     <div class="row"><button class="btn ghost" id="recseen" data-id="${r.id}">Entendi</button></div></section>`;}
   if(unread.length)h+=`<section class="msgcard"><span class="label">📩 Recado do seu professor${unread.length>1?` (${unread.length})`:''}</span><p>${esc(unread[unread.length-1].body)}</p>
     <div class="row"><button class="btn ghost" id="msgread" data-id="${unread[unread.length-1].id}">Entendi</button></div></section>`;
-  if(cloud.profile&&cloud.profile.role==='teacher')h+=`<section class="vcard"><div><span class="label">Professor</span><b>Painel do professor</b><small>Veja o progresso dos seus alunos e mande recados</small></div><button class="btn" id="profgo">Abrir painel</button></section>`;
+  const hw=hwList();
+  if(hw.length){const hd=cloud.cls.homework,nd=hw.filter(id=>state.done[id]).length;
+    h=`<section class="panel hwcard"><div><span class="label">📚 Tarefa da semana · ${esc(cloud.cls.name)}</span><h3>${nd===hw.length?'Tarefa feita! ✓':`Treine estas aulas${hd.due?` até ${new Date(hd.due+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'numeric'})}`:''}`}</h3>
+      ${hd.note?`<p>"${esc(hd.note)}"</p>`:''}</div>
+      <div class="path">${hw.map(id=>{const l=L[idx(id)];return `<button class="node ${state.done[id]?'done':'open'}" data-go="${id}"><span class="dot">${state.done[id]?'★':'▶'}</span><span class="txt"><b>${M(l.title)}</b><small>${M(l.sub)}${state.scores[id]!=null?` · Melhor nota: ${state.scores[id]}`:''}</small></span></button>`}).join('')}</div>
+      <p class="muted" style="font-size:.9rem">${nd} de ${hw.length} feitas. Repetir as aulas durante a semana também conta muito!</p></section>`+h;}
+  else if(classGuided()&&!(cloud.cls.released||[]).length)h=`<section class="msgcard"><span class="label">📚 ${esc(cloud.cls.name)}</span><p>O seu professor ainda vai liberar as primeiras aulas. Enquanto isso, faça o teste de voz e o aquecimento do dia.</p></section>`+h;
+  if(cloud.profile&&cloud.profile.role==='teacher')h+=`<section class="vcard"><div><span class="label">Professor</span><b>Painel do professor</b><small>Libere as aulas, passe a tarefa da semana e acompanhe os alunos</small></div><button class="btn" id="profgo">Abrir painel</button></section>`;
   else if(!cloud.user)h+=`<section class="vcard"><div><span class="label">Tem professor?</span><b>Entre na sua turma</b><small>Crie uma conta para o professor acompanhar o seu progresso</small></div><button class="btn ghost" id="logingo">Entrar</button></section>`;
   return h;}
 function wireHomeCloud(){
@@ -1181,7 +1209,74 @@ function viewAccount(el){
   draw();
 }
 
-const prof={classes:[],sel:null,students:[],prog:{},msgs:[],recs:[],detail:null,loaded:false};
+
+/* ---------- teacher's script for each lesson (for the in-class session) ---------- */
+const TG_FLOW={
+ theory:['Apresente o tema com exemplos cantados ou tocados (5 a 8 min).','Faça as perguntas do quiz em voz alta e deixe a turma responder.','Ligue com a prática: cante um trecho que mostre o conceito.'],
+ guided:['Demonstre cada passo antes; a turma repete junto.','Circule observando postura, ombros e tensão no pescoço.','Repita o passo mais difícil em duplas, um observando o outro.'],
+ seq:['Toque a referência e cante você primeiro.','A turma canta junto; depois em grupos menores.','Ouça individualmente e corrija: "suba um pouco", "desça um pouco".','Mostre o app na tela: o balão/linha mostra se a nota está alta ou baixa.'],
+ follow:['Toque a melodia uma vez enquanto a turma só ouve.','Cante a melodia com a letra; a turma repete por frases.','Cantem juntos no tempo, marcando o pulso com a mão.','Mostre o "Cantar junto" no app (com fone) para o treino em casa.'],
+ sustain:['Revise a respiração diafragmática antes.','Todos sustentam "uuu" juntos; marque o tempo no relógio.','Compare os tempos e incentive a melhora, não a competição.'],
+ breath:['Faça o exercício junto, com a mão na barriga.','Observe se os ombros sobem e corrija.','Repita 3 vezes com o "sss" cada vez mais longo.'],
+ warm:['Faça todo o aquecimento junto com a turma.','Lembre: volume confortável, nada de forçar.'],
+ dyn:['Demonstre os volumes: normal, suave, forte, suave.','A turma imita; observe se o forte vem do apoio e não do pescoço.','Peça a mesma nota afinada em todos os volumes.'],
+ ear:['Toque os exemplos no teclado ou violão e peça a resposta em voz alta.','Depois cada um faz no app e compara a pontuação.'],
+ staff:['Desenhe a pauta no quadro e mostre a referência do Sol na 2ª linha.','Faça um "jogo rápido" apontando notas na pauta.'],
+ tap:['Marque o pulso com palmas antes de ler os ritmos.','A turma bate os ritmos juntos falando "ta" e "ti-ti".'],
+ vib:['Explique que o vibrato não se força; mostre exemplos.','Faça os exercícios de oscilação lenta com a turma.','Ouça individualmente uma nota longa e comente a liberdade da voz.'],
+ exam:['Faça a prova em sala ou peça para fazer em casa.','Peça a gravação da prova no app para você ouvir e aprovar.']};
+const TG_HOME={theory:'Fazer a aula no app e acertar o quiz.',guided:'Repetir a sequência guiada 1 vez por dia.',seq:'Fazer a aula no app até ganhar a estrela, buscando nota 75 ou mais.',follow:'Cantar junto no app (com fone) até nota 60 ou mais.',sustain:'Treinar todo dia e anotar o recorde.',breath:'Repetir a respiração todos os dias antes de cantar.',warm:'Fazer o aquecimento antes de cada treino.',dyn:'Repetir a aula 2 ou 3 vezes na semana.',ear:'Fazer a aula até 80% de acertos.',staff:'Fazer a aula até 80% de acertos.',tap:'Fazer a aula até 70 pontos.',vib:'Treinar a preparação todos os dias; a aula de vibrato 2 vezes na semana.',exam:'Fazer a prova e enviar a gravação.'};
+function noteList(l){const st=l.steps||[];return st.map((x,k)=>NAMES[((x%12)+12)%12]+(l.lyrics&&l.lyrics[k]?` (${l.lyrics[k].replace(/-$/,'')})`:'')).join(' · ');}
+function roteiroHTML(l){const A=o=>(o&&typeof o==='object'&&!Array.isArray(o))?o.adult:o;let h=`<h5>Objetivo</h5><p>${esc(A(l.sub))}</p><h5>Ponto principal</h5><p>${esc(A(l.tip))}</p>`;
+  if(l.slides)h+=`<h5>Conteúdo</h5><ul>${A(l.slides).map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ul>`;
+  if(l.items)h+=`<h5>Passos</h5><ol>${A(l.items).map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ol>`;
+  if(l.steps&&(l.type==='seq'||l.type==='follow'))h+=`<h5>Notas (em Dó; o app ajusta ao tom de cada aluno)</h5><p>${esc(noteList(l))}</p>`;
+  if(l.parts)h+=`<h5>Partes da prova</h5><ul>${l.parts.map(x=>`<li>${esc(x.title)}</li>`).join('')}</ul>`;
+  h+=`<h5>Sugestão para a aula</h5><ol>${(TG_FLOW[l.type]||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol><h5>Para treinar em casa</h5><p>${esc(TG_HOME[l.type]||'Fazer a aula no app.')}</p>`;
+  if(l.credit)h+=`<p class="credit">${esc(l.credit)}</p>`;return h;}
+function viewCourse(el,c){
+  const rel=new Set(c.released||[]);let hw=c.homework&&Array.isArray(c.homework.lessons)?[...c.homework.lessons]:[];let open=null,saveT=null,stat=['muted',''];
+  async function save(fields,msg){const r=await cloud.sb.from('classes').update(fields).eq('id',c.id);const st=$('#cstat');
+    if(r.error){stat=['err',/column|schema/i.test(r.error.message)?'Falta rodar o script schema_v3_aulas.sql no Supabase.':PT_ERR(r.error.message)];if(st){st.className=stat[0];st.textContent=stat[1];}return false;}
+    Object.assign(c,fields);stat=['okmsg',msg||'Salvo ✓'];if(st){st.className=stat[0];st.textContent=stat[1];}return true;}
+  const saveRel=()=>{clearTimeout(saveT);saveT=setTimeout(()=>save({released:[...rel]},'Aulas liberadas salvas ✓'),500);};
+  function draw(){const hd=c.homework||{};
+    el.innerHTML=`<div class="panel">
+      <div><span class="label">Como a turma ${esc(c.name)} avança</span>
+        <div class="seg" role="group" style="margin-top:6px"><button id="g-on" aria-pressed="${c.guided!==false}">Eu libero as aulas</button><button id="g-off" aria-pressed="${c.guided===false}">Cada aluno segue sozinho</button></div>
+        <p class="muted" style="font-size:.9rem;margin-top:6px">${c.guided!==false?'Os alunos só abrem as aulas que você liberar (e as que já fizeram). Libere conforme o que você deu em sala.':'Os alunos seguem a trilha no próprio ritmo. A tarefa da semana continua aparecendo para eles.'}</p></div>
+      <p id="cstat" class="${stat[0]}">${esc(stat[1])}</p></div>
+    <div class="panel"><span class="label">📚 Tarefa da semana</span>
+      ${hw.length?`<ul class="reqs">${hw.map(id=>`<li>• ${esc(L[idx(id)]?L[idx(id)].title.adult:id)} <button class="linkbtn" data-hwdel="${id}">remover</button></li>`).join('')}</ul>`:'<p class="muted">Nenhuma aula na tarefa. Use "+ Tarefa" nas aulas abaixo.</p>'}
+      <div class="form"><label>Recado da tarefa (opcional)<textarea id="hwnote" rows="2" maxlength="300" placeholder="Ex.: Treinem a escala 3 vezes nesta semana, sempre depois do aquecimento.">${esc(hd.note||'')}</textarea></label>
+      <label>Até quando<input type="date" id="hwdue" value="${esc(hd.due||'')}" style="font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)"></label></div>
+      <div class="row"><button class="btn" id="hwsave">Salvar tarefa</button><button class="btn ghost" id="hwclear">Limpar tarefa</button></div>
+      <p class="muted" style="font-size:.88rem">As aulas da tarefa ficam liberadas para os alunos e aparecem no topo da tela inicial deles.</p></div>
+    <div class="panel"><span class="label">Curso · ${rel.size} aulas liberadas</span>
+      <p class="muted" style="font-size:.9rem">Toque em "Roteiro" para ver como dar a aula em sala, e em "Abrir" para mostrar a aula no app (por exemplo, na TV ou no projetor).</p>
+      <div class="course">${LEVELS.map(lv=>UNITS.filter(u=>u.level===lv.n).map((u,ui)=>{const ls=L.filter(l=>l.unit===u.id);const all=ls.every(l=>rel.has(l.id));
+        return `<h4><span>Nível ${lv.n} · Unidade ${ui+1}: ${esc(u.title.adult)}</span><button class="btn ghost" data-unit="${u.id}" style="padding:6px 12px;font-size:.85rem">${all?'Recolher unidade':'Liberar unidade'}</button></h4>
+        ${ls.map(l=>`<div class="crow ${rel.has(l.id)?'rel':''}"><div class="nm"><b>${idx(l.id)+1}. ${esc(l.title.adult)}</b><small>${esc(l.sub.adult||'')}</small></div>
+          <label><input type="checkbox" data-rel="${l.id}" ${rel.has(l.id)?'checked':''}> Liberada</label>
+          <button class="btn ghost" data-hw="${l.id}">${hw.includes(l.id)?'✓ Na tarefa':'+ Tarefa'}</button>
+          <button class="btn ghost" data-rot="${l.id}">${open===l.id?'Fechar':'Roteiro'}</button><button class="btn ghost" data-open="${l.id}">Abrir</button>
+          ${open===l.id?`<div class="roteiro">${roteiroHTML(l)}</div>`:''}</div>`).join('')}`;}).join('')).join('')}</div></div>`;
+    $('#g-on').onclick=async()=>{if(await save({guided:true},'Agora você libera as aulas ✓'))draw();};
+    $('#g-off').onclick=async()=>{if(await save({guided:false},'Alunos seguem sozinhos ✓'))draw();};
+    el.querySelectorAll('[data-rel]').forEach(b=>b.onchange=()=>{b.checked?rel.add(b.dataset.rel):rel.delete(b.dataset.rel);b.closest('.crow').classList.toggle('rel',b.checked);saveRel();});
+    el.querySelectorAll('[data-unit]').forEach(b=>b.onclick=()=>{const ls=L.filter(l=>l.unit===b.dataset.unit),all=ls.every(l=>rel.has(l.id));ls.forEach(l=>all?rel.delete(l.id):rel.add(l.id));draw();saveRel();});
+    el.querySelectorAll('[data-hw]').forEach(b=>b.onclick=()=>{const id=b.dataset.hw;hw=hw.includes(id)?hw.filter(x=>x!==id):[...hw,id];draw();const st=$('#cstat');if(st){st.className='muted';st.textContent='Toque em "Salvar tarefa" para enviar aos alunos.';}});
+    el.querySelectorAll('[data-hwdel]').forEach(b=>b.onclick=()=>{hw=hw.filter(x=>x!==b.dataset.hwdel);draw();});
+    el.querySelectorAll('[data-rot]').forEach(b=>b.onclick=()=>{open=open===b.dataset.rot?null:b.dataset.rot;draw();});
+    el.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>go(b.dataset.open));
+    $('#hwsave').onclick=async()=>{const h=hw.length?{lessons:hw,note:$('#hwnote').value.trim().slice(0,300),due:$('#hwdue').value||null,at:new Date().toISOString()}:null;
+      if(await save({homework:h},hw.length?'Tarefa enviada para a turma ✓':'Tarefa limpa ✓'))draw();};
+    $('#hwclear').onclick=async()=>{hw=[];if(await save({homework:null},'Tarefa limpa ✓'))draw();};
+  }
+  draw();
+}
+
+const prof={tab:'alunos',classes:[],sel:null,students:[],prog:{},msgs:[],recs:[],detail:null,loaded:false};
 function relDay(iso){if(!iso)return 'nunca';const d=Math.floor((Date.now()-new Date(iso).getTime())/864e5);return d<=0?'hoje':d===1?'ontem':`há ${d} dias`;}
 function studentInfo(st){
   const pr=prof.prog[st.id]||{},done=Object.keys(pr.done||{}).filter(k=>pr.done[k]&&idx(k)>=0).length,sc=Object.values(pr.scores||{});
@@ -1216,19 +1311,22 @@ function viewTeacher(el){
   el.innerHTML=`<div class="classchips">${prof.classes.map(x=>`<button data-c="${x.id}" aria-pressed="${x.id===prof.sel}">${esc(x.name)}</button>`).join('')}
       <form id="ncf" class="row"><input type="text" id="ncn" placeholder="Nome da nova turma" maxlength="60" style="font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink)"><button class="btn ghost" type="submit">+ Criar turma</button></form></div>
     ${!c?`<div class="panel"><h3>Crie a sua primeira turma</h3><p class="muted">Dê um nome (por exemplo "Coral Kids" ou "Ministério de louvor") e o app gera um código para os alunos entrarem.</p></div>`:`
-    <div class="panel">
+    <div class="tabs2" role="tablist"><button id="tab-a" aria-pressed="${prof.tab==='alunos'}">👥 Alunos</button><button id="tab-c" aria-pressed="${prof.tab==='aulas'}">📚 Aulas e tarefa</button></div>
+    ${prof.tab==='aulas'?'<div id="coursebox"></div>':`<div class="panel">
       <div class="codebox"><div><span class="label">Código da turma ${esc(c.name)}</span><div class="code" id="ccode">${esc(c.code)}</div></div>
         <button class="btn ghost" id="copy">Copiar código</button><button class="btn ghost" id="reload">↻ Atualizar</button></div>
       <p class="muted">Os alunos tocam em <b>Entrar</b> no app, criam a conta e digitam este código.</p>
       <div class="statrow"><div class="stat"><b>${rows.length}</b><small>alunos</small></div><div class="stat"><b>${active}</b><small>treinaram nesta semana</small></div><div class="stat"><b>${attention}</b><small>precisam de atenção</small></div><div class="stat"><b>🎙️ ${pendingAll}</b><small>gravações para ouvir</small></div></div>
     </div>
-    ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Nível</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Voz</th></tr></thead><tbody>
+    ${rows.length?`<div class="tablewrap"><table class="students"><thead><tr><th>Aluno</th><th>Situação</th><th>Nível</th><th>Progresso</th><th>Nota média</th><th>Sequência</th><th>Último acesso</th><th>Tarefa</th><th>Voz</th></tr></thead><tbody>
       ${rows.map(r=>`<tr data-s="${r.st.id}" class="${prof.detail===r.st.id?'sel':''}"><td><b>${esc(r.st.full_name||r.st.email)}</b>${r.st.is_minor?' <small class="muted">(menor)</small>':''}${(n=>n?` <span class="chip warn">🎙️ ${n}</span>`:'')(prof.recs.filter(x=>x.student_id===r.st.id&&!x.reviewed_at).length)}</td>
         <td><span class="chip ${r.cls}">${r.status}</span></td><td>${studentLevel(r.pr.done)} · ${LEVELS[studentLevel(r.pr.done)-1].title}</td>
         <td><span class="minibar"><b style="width:${Math.round(r.done/L.length*100)}%"></b></span>${r.done}/${L.length}</td>
-        <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
+        <td>${r.avg==null?'–':r.avg}</td><td>${r.streak?`🔥 ${r.streak}`:'–'}</td><td>${relDay(r.last)}</td><td>${(hl=>hl.length?`${hl.filter(id=>(r.pr.done||{})[id]).length}/${hl.length}`:'–')(c.homework&&Array.isArray(c.homework.lessons)?c.homework.lessons:[])}</td><td>${r.pr.vt?esc(r.pr.vt.cls):'–'}</td></tr>`).join('')}
     </tbody></table></div>`:`<div class="panel"><p class="muted">Nenhum aluno nesta turma ainda. Passe o código <b>${esc(c.code)}</b> para eles.</p></div>`}
-    <div id="det"></div>`}`;
+    <div id="det"></div>`}`}`;
+  const ta=$('#tab-a');if(ta){ta.onclick=()=>{prof.tab='alunos';viewTeacher(el);};$('#tab-c').onclick=()=>{prof.tab='aulas';viewTeacher(el);};}
+  if(c&&prof.tab==='aulas'){viewCourse($('#coursebox'),c);}
   el.querySelectorAll('[data-c]').forEach(b=>b.onclick=async()=>{prof.sel=b.dataset.c;prof.detail=null;prof.loaded=false;viewTeacher(el);await profLoadStudents();prof.loaded=true;viewTeacher(el);});
   $('#ncf').onsubmit=async e=>{e.preventDefault();const n=$('#ncn').value.trim();if(!n)return;
     const r=await cloud.sb.rpc('create_class',{class_name:n});if(r.error){$('#ncn').value='';$('#ncn').placeholder=PT_ERR(r.error.message);return;}
@@ -1321,15 +1419,15 @@ function render(){
       ${ls.map(([l,i])=>{const done=state.done[l.id],open=isUnlocked(i),cls=done?'done':(i===nextI?'next open':(open?'open':'locked'));
         return `<button class="node ${cls}" data-go="${l.id}" ${open?'':'aria-disabled="true"'}>
           <span class="dot">${done?'★':(open?i+1:'🔒')}</span>
-          <span class="txt"><b>${M(l.title)}</b><small>${open?M(l.sub):'Complete a aula anterior para liberar'}${state.scores[l.id]!=null?` · Melhor nota: ${state.scores[l.id]}`:''}</small></span></button>`}).join('')}
+          <span class="txt"><b>${M(l.title)}</b><small>${open?M(l.sub):(classGuided()?'O seu professor vai liberar esta aula':'Complete a aula anterior para liberar')}${state.scores[l.id]!=null?` · Melhor nota: ${state.scores[l.id]}`:''}</small></span></button>`}).join('')}
       </div></section>`}).join('')}</section>`}).join('')}
     <p class="verse">"Cantai ao Senhor um cântico novo; cantai ao Senhor, todas as terras." Salmo 96:1</p>
     <footer>Protótipo · sons e microfone funcionam depois de tocar em um botão<br>
-      <button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button></footer>`;
-    app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide('Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
+      ${classGuided()?'':`<button class="linkbtn" id="unlock">${state.unlockAll?'Voltar a liberar aula por aula':'Liberar todas as aulas (para testar)'}</button>`}</footer>`;
+    app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{const i=idx(b.dataset.go);if(isUnlocked(i))go(b.dataset.go);else if(K()){guide(classGuided()?'Essa aula o seu professor ainda vai liberar. Treine as que já estão abertas!':'Essa aula ainda está trancada. Termine a anterior primeiro, combinado?','think',true);}});
     if(K()){wireGuide();lastSay=homeLine();lastMood='happy';}
     $('#vtgo').onclick=()=>go('voicetest');wireHomeCloud();const dg=$('#dailygo');if(dg)dg.onclick=()=>go('daily');const fg=$('#freego');if(fg)fg.onclick=()=>go('livre');const hp=$('#hpok');if(hp)hp.onclick=()=>{store.set('hpOk',true);render();};
-    $('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
+    if($('#unlock'))$('#unlock').onclick=()=>{state.unlockAll=!state.unlockAll;store.set('unlockAll',state.unlockAll);render();};
     const vl=$('#v-low'),vh=$('#v-high');
     if(vl){vl.onclick=()=>{state.voice='low';store.set('voice','low');render()};vh.onclick=()=>{state.voice='high';store.set('voice','high');render()};}
   } else if(state.view==='conta'){
@@ -1351,7 +1449,7 @@ function render(){
     const i=idx(state.view),l=L[i];
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
-    $('#back').onclick=()=>go('home');
+    $('#back').onclick=()=>go('home');if(isTeacher()&&prof.tab==='aulas'){$('#back').textContent='← Voltar ao painel';$('#back').onclick=()=>go('prof');}
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
     if(['seq','follow','sustain','dyn','guided','vib'].includes(l.type)&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
@@ -1669,7 +1767,7 @@ function viewTheory(el,l,i){
 
 /* ---------- level exam: parts in sequence ---------- */
 function viewExam(el,l,i){
-  const lv=levelOf(l),prev=L.filter(x=>levelOf(x)===lv&&x.id!==l.id),missing=state.done[l.id]?[]:prev.filter(x=>!state.done[x.id]);
+  const lv=levelOf(l),prev=L.filter(x=>levelOf(x)===lv&&x.id!==l.id),missing=state.done[l.id]?[]:prev.filter(x=>!state.done[x.id]&&(!classGuided()||released(x.id)));
   const scores=[];let part=0;
   el.innerHTML=`<div class="panel">${tipBox(l)}
     <div><span class="label">Antes da prova</span><ul class="reqs">${prev.map(x=>`<li>${state.done[x.id]?'✅':'⬜'} ${M(x.title)}</li>`).join('')}</ul></div>
