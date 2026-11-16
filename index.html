@@ -245,6 +245,11 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .detail{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .detail>div{min-width:0;display:flex;flex-direction:column;gap:10px}
 @media (max-width:720px){.detail{grid-template-columns:1fr}}
+.micpick{text-align:center;margin-top:4px}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,20,30,.55);display:grid;place-items:center;padding:16px}
+.modal .panel{max-width:420px;width:100%;max-height:85vh;overflow:auto}
+.modal label{display:flex;flex-direction:row!important;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:12px;font-weight:700}
+.modal label small{display:block;font-weight:600;color:var(--muted)}
 .tabs2{display:flex;gap:8px;flex-wrap:wrap}
 .tabs2 button{border:0;background:var(--surface);border-bottom:3px solid transparent;padding:8px 6px;font-weight:800;color:var(--muted);font:inherit;font-weight:800}
 .tabs2 button[aria-pressed="true"]{color:var(--accent);border-bottom-color:var(--accent)}
@@ -978,6 +983,33 @@ function btTip(){if(sessionStorage.getItem('vlBtTip'))return;try{sessionStorage.
   const b=document.querySelector('#body');if(!b)return;const t=document.createElement('div');t.className='tip';
   t.innerHTML='<span>🎧</span><p><b>Fone Bluetooth:</b> no celular, depois que o microfone liga, o fone Bluetooth costuma ficar mais baixo (é o "modo de chamada" do próprio celular). O app já aumenta o som nesse caso. Se ainda ficar baixo, aperte o botão de <b>aumentar volume do celular enquanto o som toca</b>, ou use um <b>fone com fio</b> nas aulas cantadas.</p>';
   b.prepend(t);}
+
+/* ---------- choose which microphone to use (e.g. phone mic instead of the headset's mic) ---------- */
+function micPickHTML(){return navigator.mediaDevices&&navigator.mediaDevices.enumerateDevices?`<p class="micpick"><button class="linkbtn" id="micpick">🎤 Escolher o microfone</button></p>`:'';}
+function wireMicPick(){const b=$('#micpick');if(b)b.onclick=openMicPick;}
+async function openMicPick(){
+  const m=document.createElement('div');m.className='modal';m.innerHTML='<div class="panel"><p class="muted">Procurando microfones...</p></div>';document.body.appendChild(m);
+  m.onclick=e=>{if(e.target===m)m.remove();};
+  let ds=[];try{ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');
+    if(!ds.some(d=>d.label)){const st=await navigator.mediaDevices.getUserMedia({audio:true});st.getTracks().forEach(t=>t.stop());resetAudio();ds=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='audioinput');}}catch(e){}
+  let cur=null;try{cur=localStorage.getItem('vozlivre.micId');}catch(e){}
+  const nice=d=>{const t=d.label||'Microfone';if(d.deviceId==='default')return 'Padrão do aparelho';if(d.deviceId==='communications')return 'Padrão de chamadas';
+    return t.replace(/Speakerphone/i,'Microfone do celular (viva-voz)').replace(/Headset earpiece/i,'Microfone do celular').replace(/Bluetooth headset/i,'Microfone do fone Bluetooth').replace(/Wired headset|Headset microphone/i,'Microfone do fone com fio');};
+  const list=ds.filter(d=>d.deviceId);
+  m.querySelector('.panel').innerHTML=`<h3>Qual microfone usar?</h3>
+    <p class="muted" style="font-size:.9rem">Para usar o microfone do celular com um fone que tem microfone, escolha "Microfone do celular". Depois toque em Cantar de novo.</p>
+    <div class="form">
+      <label><input type="radio" name="mp" value="" ${!cur?'checked':''}><span>Automático<small>O app escolhe (evita o microfone do fone Bluetooth)</small></span></label>
+      ${list.map(d=>`<label><input type="radio" name="mp" value="${esc(d.deviceId)}" ${cur===d.deviceId?'checked':''}><span>${esc(nice(d))}${d.label&&nice(d)!==d.label?`<small>${esc(d.label)}</small>`:''}</span></label>`).join('')}
+    </div>
+    ${list.length<=1?'<p class="err" style="font-size:.9rem">Este navegador só mostrou um microfone. Nesse caso é o próprio celular que decide qual usar, e o app não consegue trocar.</p>':''}
+    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" id="mpok">Usar este</button><button class="btn ghost" id="mpx">Cancelar</button></div>`;
+  m.querySelector('#mpx').onclick=()=>m.remove();
+  m.querySelector('#mpok').onclick=()=>{const v=(m.querySelector('input[name=mp]:checked')||{}).value||'';
+    try{v?localStorage.setItem('vozlivre.micId',v):localStorage.removeItem('vozlivre.micId');localStorage.setItem('vozlivre.micManual',v?'1':'');}catch(e){}
+    stopMic();m.remove();const mb=$('#mic');if(mb&&/Parar/.test(mb.textContent))mb.click();};
+}
+
 function resetAudio(){stopTones();if(actx){const c=actx;actx=null;try{c.close().catch(()=>{});}catch(e){}}}
 function stopMic(){if(mic){mic.stream.getTracks().forEach(t=>t.stop());mic=null;resetAudio();}}
 function rmsOf(buf){let r=0;for(let i=0;i<buf.length;i++)r+=buf[i]*buf[i];return Math.sqrt(r/buf.length);}
@@ -1490,16 +1522,17 @@ function render(){
     $('#back').onclick=()=>go('home');viewDaily($('#body'));
   } else if(state.view==='livre'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">Qualquer louvor</span><h2>Cante seu louvor</h2></div><div id="body"></div>`;
-    $('#back').onclick=()=>go('home');viewFree($('#body'));
+    $('#back').onclick=()=>go('home');viewFree($('#body'));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();
   } else if(state.view==='voicetest'){
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button><div><span class="label">1 minuto</span><h2>Teste de voz</h2></div><div id="body"></div>`;
-    $('#back').onclick=()=>go('home');viewVoiceTest($('#body'));
+    $('#back').onclick=()=>go('home');viewVoiceTest($('#body'));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();
   } else {
     const i=idx(state.view),l=L[i];
     app.innerHTML=head+`<button class="back" id="back">← Voltar à trilha</button>
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');if(isTeacher()&&prof.tab==='aulas'){$('#back').textContent='← Voltar ao painel';$('#back').onclick=()=>go('prof');}
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
+    if(['seq','follow','sustain','dyn','vib','exam'].includes(l.type)){$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();}
     if((['seq','follow','sustain','dyn','vib'].includes(l.type)||(l.type==='guided'&&l.sung))&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
   }
