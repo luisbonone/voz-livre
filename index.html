@@ -264,6 +264,13 @@ table.students tbody tr:hover,table.students tbody tr.sel{background:var(--band)
 .roteiro{flex-basis:100%;background:var(--bg);border-radius:10px;padding:10px 12px;font-size:.93rem}
 .roteiro h5{margin:8px 0 4px;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .roteiro ul,.roteiro ol{margin:0;padding-left:1.2em}
+.roteiro .rbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:4px 0}
+.roteiro .rbox.ex{border-left:4px solid var(--sun)}.roteiro .rbox.mat{border-left:4px solid var(--accent)}
+.roteiro .rduo{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0}.roteiro .rduo p{margin:4px 0 0}
+.roteiro .rduo h6{margin:0;font-size:.85rem}.roteiro .rerr li{margin-bottom:4px}
+@media (max-width:640px){.roteiro .rduo{grid-template-columns:1fr}}
+details.dida{margin-top:12px;background:var(--band);border-radius:14px;padding:10px 14px;font-size:.95rem}
+details.dida summary{cursor:pointer;font-weight:700;color:var(--accent)}details.dida p{margin:8px 0 0}details.dida b{color:var(--accent)}
 .hwcard{border:2px solid var(--sun)}
 .lessonlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.93rem}
 .lessonlist li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:4px 0}
@@ -322,6 +329,7 @@ select,input,textarea{max-width:100%;box-sizing:border-box}
 <div class="app" id="app"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="didatica.js"></script>
 <script>
 (function(){
 const $=(s,el=document)=>el.querySelector(s);
@@ -1408,12 +1416,22 @@ function sylKey(l){if(!l||l.id==='vowels')return null;if(l.syl)return l.syl;if(S
 function sylHTML(l){const k=sylKey(l);if(!k)return '';const y=SYLS[k],w=(k==='nome'||k==='letra')?y.s:`em "${y.s}"`;
   return `<div class="syl"><span>🗣️</span><p><b>${l.type==='exam'?'Nas partes cantadas, cante':'Cante'} ${w}</b><br><small>${K()?y.kid:y.adult}</small></p></div>`;}
 function sylText(l){const k=sylKey(l);if(!k)return '';const y=SYLS[k];return (k==='nome'||k==='letra'?`Cantar ${y.s}. `:`Cantar em "${y.s}". `)+y.adult;}
+const DIDA=l=>(window.VL_DIDA&&window.VL_DIDA[l.id])||{};
+function didaHTML(l){const d=DIDA(l);if(!d.al&&!d.m)return '';const k=K();
+  return `<details class="dida"><summary>${k?'🎒 Brincadeira para treinar em casa':'🎒 Para praticar melhor'}</summary>${d.m?`<p><b>${k?'Você vai precisar de':'Material simples'}:</b> ${esc(d.m.replace(/ por aluno/g,''))}</p>`:''}${!k&&d.ex?`<p><b>Para entender:</b> ${esc(d.ex)}</p>`:''}${d.al?`<p><b>${k?'Como brincar':'Como treinar'}:</b> ${esc(k?d.al.kid:d.al.adult)}</p>`:''}${k?'<p><small>Peça ajuda a um adulto para separar o material.</small></p>':''}</details>`;}
 function roteiroHTML(l){const A=o=>(o&&typeof o==='object'&&!Array.isArray(o))?o.adult:o;let h=`<h5>Objetivo</h5><p>${esc(A(l.sub))}</p><h5>Ponto principal</h5><p>${esc(A(l.tip))}</p>`;if(sylKey(l))h+=`<h5>Com que sílaba cantar</h5><p>${esc(sylText(l))}</p>`;
   if(l.slides)h+=`<h5>Conteúdo</h5><ul>${A(l.slides).map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ul>`;
   if(l.items)h+=`<h5>Passos</h5><ol>${A(l.items).map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ol>`;
   if(l.steps&&(l.type==='seq'||l.type==='follow'))h+=`<h5>Notas (em Dó; o app ajusta ao tom de cada aluno)</h5><p>${esc(noteList(l))}</p>`;
   if(l.parts)h+=`<h5>Partes da prova</h5><ul>${l.parts.map(x=>`<li>${esc(x.title)}</li>`).join('')}</ul>`;
-  h+=`<h5>Sugestão para a aula</h5><ol>${(TG_FLOW[l.type]||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol><h5>Para treinar em casa</h5><p>${esc(TG_HOME[l.type]||'Fazer a aula no app.')}</p>`;
+  const d=DIDA(l);
+  if(d.m)h+=`<h5>🎒 Materiais</h5><div class="rbox mat">${esc(d.m)}</div>`;
+  if(d.ex)h+=`<h5>💡 Exemplo para explicar</h5><div class="rbox ex">${esc(d.ex)}</div>`;
+  h+=`<h5>${d.p?'Passo a passo da aula':'Sugestão para a aula'}</h5><ol>${(d.p||TG_FLOW[l.type]||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`;
+  if(d.c||d.a)h+=`<h5>Como ensinar cada idade</h5><div class="rduo">${d.c?`<div class="rbox"><h6>🐤 Crianças</h6><p>${esc(d.c)}</p></div>`:''}${d.a?`<div class="rbox"><h6>🎤 Jovens e adultos</h6><p>${esc(d.a)}</p></div>`:''}</div>`;
+  if(d.e&&d.e.length)h+=`<h5>⚠️ Erros comuns e como corrigir</h5><ul class="rerr">${d.e.map(x=>`<li><b>${esc(x[0])}:</b> ${esc(x[1])}</li>`).join('')}</ul>`;
+  h+=`<h5>Para treinar em casa</h5><p>${esc(TG_HOME[l.type]||'Fazer a aula no app.')}</p>`;
+  if(d.al)h+=`<div class="rduo"><div class="rbox"><h6>🐤 Crianças</h6><p>${esc(d.al.kid)}</p></div><div class="rbox"><h6>🎤 Jovens e adultos</h6><p>${esc(d.al.adult)}</p></div></div>`;
   if(l.credit)h+=`<p class="credit">${esc(l.credit)}</p>`;return h;}
 function viewCourse(el,c){
   const rel=new Set(c.released||[]);let hw=c.homework&&Array.isArray(c.homework.lessons)?[...c.homework.lessons]:[];let open=null,saveT=null,stat=['muted',''];
@@ -1669,6 +1687,7 @@ function render(){
       <div><span class="label">Aula ${i+1} de ${L.length}</span><h2>${M(l.title)}</h2></div><div id="body"></div>`;
     $('#back').onclick=()=>go('home');if(isTeacher()&&prof.tab==='aulas'){$('#back').textContent='← Voltar ao painel';$('#back').onclick=()=>go('prof');}
     ({breath:viewBreath,warm:viewWarm,seq:viewSeq,sustain:viewSustain,follow:viewFollow,guided:viewGuided,dyn:viewDyn,ear:viewEar,theory:viewTheory,exam:viewExam,staff:viewStaff,tap:viewTap,vib:viewVib})[l.type]($('#body'),l,i);
+    $('#body').insertAdjacentHTML('beforeend',didaHTML(l));
     if(['seq','follow','sustain','dyn','vib','exam'].includes(l.type)){const sp=$('#body .panel')||$('#body');sp.insertAdjacentHTML('afterbegin',sylHTML(l)+mudaTip(l));$('#body').insertAdjacentHTML('beforeend',micPickHTML());wireMicPick();}
     if((['seq','follow','sustain','dyn','vib'].includes(l.type)||(l.type==='guided'&&l.sung))&&canRecord()){$('#body').insertAdjacentHTML('beforeend',recorderHTML(false));wireRecorder(l.id,false);}
     if(K()){wireGuide();lastSay=M(l.tip);lastMood='idle';speak(M(l.tip));}
