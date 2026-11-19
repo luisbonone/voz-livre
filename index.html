@@ -2378,10 +2378,24 @@ function viewVoiceTest(el){
     if(K()){confetti();guide(`Prontinho! A sua voz vai de ${nm(low)} até ${nm(high)}. Agora todas as aulas estão no seu tom. Vamos cantar!`,'cheer','force');}
   }
   const vts=[...el.querySelectorAll('#vts span')];
-  function runStep(){
-    const s=steps[k];mode='rec';$('#st').textContent=`${k+1}. ${s.t}`;$('#sd').textContent=s.d;$('#go').disabled=true;$('#go').textContent='Ouvindo...';
+  /* Mostra a instrução primeiro; o tempo só começa depois que a pessoa toca no botão. */
+  function prepStep(praise){
+    const s=steps[k];mode='prep';$('#st').textContent=`${k+1}. ${s.t}`;$('#sd').textContent=s.d;$('#live').textContent='–';
     vts.forEach((v,j)=>v.className=j<k?'ok':(j===k?'on':''));
-    if(K())guide(s.d,'idle');
+    $('#tm').hidden=true;$('#go').disabled=false;$('#go').textContent='Estou pronto, começar';$('#go').onclick=countIn;
+    if(K())guide((praise?'Muito bem! Agora a próxima parte. ':'')+s.d+' Quando estiver pronto, toque no botão.',praise?'happy':'idle','force');
+  }
+  function countIn(){
+    mode='count';$('#go').disabled=true;try{speechSynthesis.cancel();}catch(e){}
+    let n=3;$('#tm').hidden=false;$('#tm').textContent='Prepare-se: '+n;$('#go').textContent='Respire...';
+    const iv=setInterval(()=>{if(mode!=='count'){clearInterval(iv);return;}n--;
+      if(n>0){$('#tm').textContent='Prepare-se: '+n;return;}clearInterval(iv);runStep();},800);
+    cleanCount=()=>clearInterval(iv);
+  }
+  let cleanCount=()=>{};
+  function runStep(){
+    const s=steps[k];mode='rec';$('#st').textContent=`${k+1}. ${s.t}`;$('#sd').textContent=s.d;$('#go').disabled=true;$('#go').textContent='Ouvindo... cante agora!';
+    vts.forEach((v,j)=>v.className=j<k?'ok':(j===k?'on':''));
     const vals=[],win=[];let t0=performance.now(),last=t0,lowS=null,highS=null;$('#tm').hidden=false;
     const tick=()=>{raf=requestAnimationFrame(tick);const now=performance.now(),el2=(now-t0)/1000;
       let f=null;if(demo)f=midiToHz(+$('#sim').value);else if(mic){mic.analyser.getFloatTimeDomainData(mic.buf);f=detectPitch(mic.buf,actx.sampleRate);}
@@ -2392,20 +2406,19 @@ function viewVoiceTest(el){
       if(s.k==='low'&&lowS!=null)res.low=lowS;if(s.k==='high'&&highS!=null)res.high=highS;
       $('#tm').textContent=Math.max(0,Math.ceil(s.dur-el2))+'s';drawKeys();
       if(el2>=s.dur){cancelAnimationFrame(raf);raf=null;cur=null;
-        if(vals.length<15){$('#sd').textContent='Não consegui ouvir direito. Cante um pouco mais alto ou chegue perto do microfone e tente de novo.';$('#go').disabled=false;$('#go').textContent='Tentar de novo';$('#go').onclick=runStep;return;}
+        if(vals.length<15){$('#sd').textContent='Não consegui ouvir direito. Cante um pouco mais alto ou chegue perto do microfone e tente de novo.';$('#tm').hidden=true;$('#go').disabled=false;$('#go').textContent='Tentar de novo';$('#go').onclick=countIn;return;}
         if(s.k==='comf'){vals.sort((a,b)=>a-b);res.comf=vals[Math.floor(vals.length/2)];}
         if(s.k==='low'&&res.low==null)res.low=Math.min(...vals);
         if(s.k==='high'&&res.high==null)res.high=Math.max(...vals);
         if(s.k==='low')res.low=Math.min(res.low,res.comf);if(s.k==='high')res.high=Math.max(res.high,res.comf);
         $('#tm').hidden=true;drawKeys();k++;
         if(k>=steps.length){stopMic();finish();return;}
-        $('#go').disabled=false;$('#go').textContent='Próxima parte';$('#go').onclick=runStep;$('#st').textContent='Muito bem!';$('#sd').textContent='Quando estiver pronto, toque em Próxima parte.';
-        if(K())guide('Muito bem! Agora a próxima parte.','happy');
+        prepStep(true);
       }};
     tick();
   }
-  $('#go').onclick=async()=>{ctx();if(!await startMic()){demo=true;$('#demo').hidden=false;}runStep();};
-  cleanup=()=>{cancelAnimationFrame(raf);raf=null;stopMic();};
+  $('#go').onclick=async()=>{ctx();if(!await startMic()){demo=true;$('#demo').hidden=false;}prepStep(false);};
+  cleanup=()=>{cancelAnimationFrame(raf);raf=null;mode='off';cleanCount();stopMic();};
 }
 
 /* ---------- follow the melody (in time, with score) ---------- */
