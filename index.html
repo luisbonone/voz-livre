@@ -2387,10 +2387,13 @@ function viewVoiceTest(el){
   }
   function countIn(){
     mode='count';$('#go').disabled=true;try{speechSynthesis.cancel();}catch(e){}
-    let n=3;$('#tm').hidden=false;$('#tm').textContent='Prepare-se: '+n;$('#go').textContent='Respire...';
+    /* Bip curto em 3, 2, 1 e um bip mais agudo e longo no "Já!"; a escuta só começa depois que o bip acaba, para o microfone não confundir o bip com a voz. */
+    const beep=last=>{try{playTone(last?1318.5:880,last?.35:.15,null,0,last?.3:.22);}catch(e){}};
+    let n=3,to=null;$('#tm').hidden=false;$('#tm').textContent='Prepare-se: '+n;$('#go').textContent='Respire...';beep(false);
     const iv=setInterval(()=>{if(mode!=='count'){clearInterval(iv);return;}n--;
-      if(n>0){$('#tm').textContent='Prepare-se: '+n;return;}clearInterval(iv);runStep();},800);
-    cleanCount=()=>clearInterval(iv);
+      if(n>0){$('#tm').textContent='Prepare-se: '+n;beep(false);return;}
+      clearInterval(iv);$('#tm').textContent='Já!';beep(true);to=setTimeout(()=>{if(mode==='count')runStep();},450);},1000);
+    cleanCount=()=>{clearInterval(iv);clearTimeout(to);};
   }
   let cleanCount=()=>{};
   function runStep(){
